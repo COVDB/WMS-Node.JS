@@ -22,7 +22,7 @@ class TCPClient:
         
         Args:
             host (str): IP address of the Mobile Racking controller
-            port (int): TCP port (default 2000)
+            port (int): TCP port (default 2000 per PDF documentation)
         """
         self.host = host
         self.port = port
@@ -93,9 +93,10 @@ class TCPClient:
     def send_command(self, command: int) -> Optional[bytes]:
         """
         Send a 2-byte command and receive 20-byte response
+        According to PDF: Status request = (0,2), Open aisle = (aisle_num,1)
         
         Args:
-            command (int): Command number (0-65535)
+            command (int): Command number (0=status, 1-19=open aisle)
             
         Returns:
             Optional[bytes]: 20-byte response or None on error
@@ -105,10 +106,20 @@ class TCPClient:
             return None
             
         try:
-            # Send 2-byte command (little endian)
-            command_bytes = struct.pack('<H', command)
+            # Prepare command according to PDF specification
+            if command == 0:
+                # Status request: first byte = 0, second byte = 2
+                command_bytes = struct.pack('BB', 0, 2)
+                logger.debug(f"Sending status request: (0, 2) = {command_bytes.hex()}")
+            elif 1 <= command <= 19:
+                # Open aisle: first byte = aisle number, second byte = 1
+                command_bytes = struct.pack('BB', command, 1)
+                logger.debug(f"Sending open aisle {command}: ({command}, 1) = {command_bytes.hex()}")
+            else:
+                # Custom command (fallback to old format)
+                command_bytes = struct.pack('<H', command)
+                logger.debug(f"Sending custom command: {command} = {command_bytes.hex()}")
             
-            logger.debug(f"Sending command: {command} ({command_bytes.hex()})")
             self.socket.send(command_bytes)
             
             # Receive 20-byte response with timeout handling

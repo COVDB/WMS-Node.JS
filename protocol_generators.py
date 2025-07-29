@@ -225,7 +225,7 @@ async function main() {{
 main();"""
 
 class CSharpGenerator(ProtocolGenerator):
-    """C# TCP-IP communication code generator"""
+    """C# TCP-IP communication code generator (based on Stow example)"""
     
     def __init__(self):
         super().__init__()
@@ -237,15 +237,24 @@ class CSharpGenerator(ProtocolGenerator):
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-// TCP client setup
+// TCP client setup (based on Stow Mobile Racking example)
 TcpClient client = new TcpClient();
 
 try
 {{
+    // Typical response times are below 30 ms, here we wait for a maximum of 5000ms/packet
+    client.ReceiveTimeout = 5000;
+    
     await client.ConnectAsync("{host}", {port});
-    Console.WriteLine("Connected to WMS Mobile Racking at {host}:{port}");
+    Console.WriteLine("Connected to Mobile Racking at {host}:{port}");
     
     NetworkStream stream = client.GetStream();
+    var connection = new StowMobileComm();
+    
+    // Initialize connection for the installer
+    // In his first attempt he asks for the status of the installation
+    var response = connection.Transmit(0, true, true);
+    Console.WriteLine($"Initial response: {{response}}");
 }}
 catch (Exception ex)
 {{
@@ -255,164 +264,222 @@ catch (Exception ex)
     def generate_command_code(self, command: int, description: str = "") -> str:
         comment = f"// {description}" if description else ""
         return f"""{comment}
-int command = {command};
-byte[] commandBytes = BitConverter.GetBytes((ushort)command);
+// Send command using Stow protocol format
+// Command bytes according to PDF specification
+byte[] commandBytes = new byte[4];
 
-if (BitConverter.IsLittleEndian == false)
-{{
-    Array.Reverse(commandBytes);
+if ({command} == 0) {{
+    // Status request: (0, 2)
+    BitConverter.GetBytes((ushort)0).CopyTo(commandBytes, 0);
+    BitConverter.GetBytes((ushort)2).CopyTo(commandBytes, 2);
+}} else if ({command} >= 1 && {command} <= 19) {{
+    // Open aisle: (aisle_number, 1)
+    BitConverter.GetBytes((ushort){command}).CopyTo(commandBytes, 0);
+    BitConverter.GetBytes((ushort)1).CopyTo(commandBytes, 2);
 }}
 
 await stream.WriteAsync(commandBytes, 0, commandBytes.Length);
-Console.WriteLine($"Command {{command}} sent successfully");"""
+Console.WriteLine($"Command {{string.Join(" ", commandBytes.Select(b => b.ToString("X2")))}} sent");"""
 
     def generate_parsing_code(self) -> str:
-        return """// Response parsing
+        return """// Response parsing with MobileResponse class (based on Stow example)
+public class MobileResponse
+{
+    public const int responseLength = 20;
+    
+    public bool can_open { get; set; } = false;
+    public bool ready_to_operate { get; set; } = false;
+    public bool power_on { get; set; } = false;
+    public bool automatic_mode_on { get; set; } = false;
+    // Add other properties as needed
+    
+    public MobileResponse(byte[] data)
+    {
+        if (data.Length != responseLength)
+            throw new IndexOutOfRangeException("MobileResponse - incorrect length data");
+            
+        // The incoming data contains one 32-bit word per status field, not bytes
+        if (!BitConverter.IsLittleEndian)
+        {
+            // This code runs on a big endian machine, reverse the incoming bytes
+            for (int i = 0; i < data.Length; i += 2)
+            {
+                Array.Reverse(data, i, 2);
+            }
+        }
+        
+        // Parse response data
+        can_open = BitConverter.ToUInt16(data, 0) == 1;
+        ready_to_operate = BitConverter.ToUInt16(data, 2) == 1;
+        power_on = BitConverter.ToUInt16(data, 4) == 1;
+        automatic_mode_on = BitConverter.ToUInt16(data, 6) == 1;
+    }
+}
+
+// Usage in response handling
 byte[] responseBuffer = new byte[20];
 int bytesRead = await stream.ReadAsync(responseBuffer, 0, responseBuffer.Length);
 
 if (bytesRead == 20)
 {
-    // Parse 20-byte status response
-    var status = new
-    {
-        TcpIpConnection = BitConverter.ToUInt16(responseBuffer, 0) == 1,
-        PowerOn = BitConverter.ToUInt16(responseBuffer, 2) == 1,
-        AutomaticModeOn = BitConverter.ToUInt16(responseBuffer, 4) == 1,
-        ManualModeOn = BitConverter.ToUInt16(responseBuffer, 6) == 1,
-        EmergencyStop = BitConverter.ToUInt16(responseBuffer, 8) == 1,
-        MobileQuantity = BitConverter.ToUInt16(responseBuffer, 10),
-        Position1 = BitConverter.ToUInt16(responseBuffer, 12) / 100.0,
-        Position2 = BitConverter.ToUInt16(responseBuffer, 14) / 100.0,
-        LightingOn = BitConverter.ToUInt16(responseBuffer, 16) == 1,
-        Timestamp = DateTime.Now
-    };
-    
-    Console.WriteLine($"Status: {System.Text.Json.JsonSerializer.Serialize(status)}");
+    var response = new MobileResponse(responseBuffer);
+    Console.WriteLine($"Can Open: {response.can_open}");
+    Console.WriteLine($"Power On: {response.power_on}");
+    Console.WriteLine($"Auto Mode: {response.automatic_mode_on}");
 }"""
 
     def generate_complete_example(self, host: str, port: int) -> str:
         return f"""using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using System.Text.Json;
+using System.Linq;
 
-public class WMSClient : IDisposable
+namespace MobileCommTest
 {{
-    private TcpClient _client;
-    private NetworkStream _stream;
-    private readonly string _host;
-    private readonly int _port;
-    
-    public WMSClient(string host, int port)
+    class Program
     {{
-        _host = host;
-        _port = port;
-        _client = new TcpClient();
-    }}
-    
-    public async Task<bool> ConnectAsync()
-    {{
-        try
+        static void Main(string[] args)
         {{
-            await _client.ConnectAsync(_host, _port);
-            _stream = _client.GetStream();
-            Console.WriteLine($"Connected to WMS at {{_host}}:{{_port}}");
-            return true;
-        }}
-        catch (Exception ex)
-        {{
-            Console.WriteLine($"Connection error: {{ex.Message}}");
-            return false;
-        }}
-    }}
-    
-    public async Task<bool> SendCommandAsync(int command)
-    {{
-        try
-        {{
-            byte[] commandBytes = BitConverter.GetBytes((ushort)command);
+            // In this example, the programmer asks for the status of the installation in his first request
+            // In his second request, he opens aisle number "1"
             
+            var client = new TcpClient();
+            
+            try
+            {{
+                client.ReceiveTimeout = 5000; // 5000ms timeout
+                client.Connect("{host}", {port});
+                
+                Console.WriteLine("Connected to Mobile Racking system");
+                
+                var stream = client.GetStream();
+                
+                // Test status request - send (0, 2) per PDF spec
+                Console.WriteLine("\\nSending status request...");
+                byte[] statusCmd = new byte[4];
+                BitConverter.GetBytes((ushort)0).CopyTo(statusCmd, 0);  // byte1 = 0
+                BitConverter.GetBytes((ushort)2).CopyTo(statusCmd, 2);  // byte2 = 2
+                
+                stream.Write(statusCmd, 0, statusCmd.Length);
+                Console.WriteLine($"Status command sent: {{string.Join(" ", statusCmd.Select(b => b.ToString("X2")))}}");
+                
+                // Read response
+                var response = GetResponse(stream);
+                if (response != null)
+                {{
+                    Console.WriteLine($"Status response received: {{response}}");
+                }}
+                
+                // Test aisle 1 open command - send (1, 1) per PDF spec
+                Console.WriteLine("\\nSending open aisle 1 command...");
+                byte[] aisleCmd = new byte[4];
+                BitConverter.GetBytes((ushort)1).CopyTo(aisleCmd, 0);   // byte1 = 1 (aisle number)
+                BitConverter.GetBytes((ushort)1).CopyTo(aisleCmd, 2);   // byte2 = 1 (open command)
+                
+                stream.Write(aisleCmd, 0, aisleCmd.Length);
+                Console.WriteLine($"Aisle command sent: {{string.Join(" ", aisleCmd.Select(b => b.ToString("X2")))}}");
+                
+                // Read response
+                response = GetResponse(stream);
+                if (response != null)
+                {{
+                    Console.WriteLine($"Aisle response received: {{response}}");
+                }}
+                
+            }}
+            catch (Exception ex)
+            {{
+                Console.WriteLine($"Error: {{ex.Message}}");
+            }}
+            finally
+            {{
+                client?.Close();
+            }}
+            
+            Console.WriteLine("\\nPress any key to exit...");
+            Console.ReadKey();
+        }}
+        
+        static MobileResponse GetResponse(NetworkStream stream)
+        {{
+            try
+            {{
+                byte[] buffer = new byte[MobileResponse.responseLength];
+                int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                
+                if (bytesRead == MobileResponse.responseLength)
+                {{
+                    return new MobileResponse(buffer);
+                }}
+                else
+                {{
+                    Console.WriteLine($"Expected {{MobileResponse.responseLength}} bytes, got {{bytesRead}}");
+                    return null;
+                }}
+            }}
+            catch (Exception ex)
+            {{
+                Console.WriteLine($"Error reading response: {{ex.Message}}");
+                return null;
+            }}
+        }}
+    }}
+    
+    public class MobileResponse
+    {{
+        public const int responseLength = 20;
+        
+        public bool can_open {{ get; set; }} = false;
+        public bool ready_to_operate {{ get; set; }} = false;
+        public bool manual_mode {{ get; set; }} = false;
+        public bool power_on {{ get; set; }} = false;
+        public bool automatic_mode_on {{ get; set; }} = false;
+        public bool night_mode {{ get; set; }} = false;
+        public bool moving {{ get; set; }} = false;
+        public bool lighting_on {{ get; set; }} = false;
+        public ushort mobile_quantity {{ get; set; }} = 0;
+        public ushort position_1 {{ get; set; }} = 0;
+        public ushort position_2 {{ get; set; }} = 0;
+        
+        public MobileResponse(byte[] data)
+        {{
+            if (data.Length != responseLength)
+                throw new IndexOutOfRangeException("MobileResponse - incorrect length data");
+                
+            // The incoming data contains one 32-bit word per status field, not bytes
             if (!BitConverter.IsLittleEndian)
             {{
-                Array.Reverse(commandBytes);
-            }}
-            
-            await _stream.WriteAsync(commandBytes, 0, commandBytes.Length);
-            Console.WriteLine($"Command {{command}} sent");
-            return true;
-        }}
-        catch (Exception ex)
-        {{
-            Console.WriteLine($"Error sending command: {{ex.Message}}");
-            return false;
-        }}
-    }}
-    
-    public async Task<object> ReadStatusAsync()
-    {{
-        try
-        {{
-            byte[] responseBuffer = new byte[20];
-            int bytesRead = await _stream.ReadAsync(responseBuffer, 0, responseBuffer.Length);
-            
-            if (bytesRead == 20)
-            {{
-                var status = new
+                // This code runs on a big endian machine, reverse the incoming bytes
+                for (int i = 0; i < data.Length; i += 2)
                 {{
-                    TcpIpConnection = BitConverter.ToUInt16(responseBuffer, 0) == 1,
-                    PowerOn = BitConverter.ToUInt16(responseBuffer, 2) == 1,
-                    AutomaticModeOn = BitConverter.ToUInt16(responseBuffer, 4) == 1,
-                    ManualModeOn = BitConverter.ToUInt16(responseBuffer, 6) == 1,
-                    EmergencyStop = BitConverter.ToUInt16(responseBuffer, 8) == 1,
-                    MobileQuantity = BitConverter.ToUInt16(responseBuffer, 10),
-                    Position1 = BitConverter.ToUInt16(responseBuffer, 12) / 100.0,
-                    Position2 = BitConverter.ToUInt16(responseBuffer, 14) / 100.0,
-                    LightingOn = BitConverter.ToUInt16(responseBuffer, 16) == 1,
-                    Timestamp = DateTime.Now
-                }};
-                
-                Console.WriteLine($"Status: {{JsonSerializer.Serialize(status)}}");
-                return status;
+                    Array.Reverse(data, i, 2);
+                }}
             }}
             
-            return null;
+            // Parse according to Mobile Racking protocol
+            can_open = BitConverter.ToUInt16(data, 0) == 1;
+            ready_to_operate = BitConverter.ToUInt16(data, 2) == 1;
+            manual_mode = BitConverter.ToUInt16(data, 4) == 1;
+            power_on = BitConverter.ToUInt16(data, 6) == 1;
+            automatic_mode_on = BitConverter.ToUInt16(data, 8) == 1;
+            night_mode = BitConverter.ToUInt16(data, 10) == 1;
+            moving = BitConverter.ToUInt16(data, 12) == 1;
+            lighting_on = BitConverter.ToUInt16(data, 14) == 1;
+            mobile_quantity = BitConverter.ToUInt16(data, 16);
+            position_1 = BitConverter.ToUInt16(data, 18);
         }}
-        catch (Exception ex)
+        
+        public override string ToString()
         {{
-            Console.WriteLine($"Error reading status: {{ex.Message}}");
-            return null;
+            return $"Can Open: {{can_open}}, Ready: {{ready_to_operate}}, Power: {{power_on}}, " +
+                   $"Auto Mode: {{automatic_mode_on}}, Mobiles: {{mobile_quantity}}, Position 1: {{position_1}}";
         }}
-    }}
-    
-    public void Dispose()
-    {{
-        _stream?.Dispose();
-        _client?.Close();
     }}
 }}
 
-// Usage example
-class Program
-{{
-    static async Task Main(string[] args)
-    {{
-        using var wms = new WMSClient("{host}", {port});
-        
-        if (await wms.ConnectAsync())
-        {{
-            // Send status request
-            await wms.SendCommandAsync(0);
-            
-            // Read response
-            await wms.ReadStatusAsync();
-            
-            // Send other commands
-            // await wms.SendCommandAsync(1); // Start operation
-            // await wms.SendCommandAsync(3); // Set automatic mode
-        }}
-    }}
-}}"""
+// To compile and run:
+// csc Program.cs
+// Program.exe"""
 
 class RubyGenerator(ProtocolGenerator):
     """Ruby TCP-IP communication code generator"""

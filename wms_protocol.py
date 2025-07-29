@@ -230,24 +230,46 @@ WMS_DATA_STRUCTURE = {
 }
 
 class WMSCommands:
-    """WMS Command definitions"""
+    """
+    WMS Command definitions according to PDF specification
     
-    # Basic commands
+    According to PDF:
+    - Status request: first byte = 0, second byte = 2  
+    - Open aisle: first byte = aisle number (1-19), second byte = 1
+    """
+    
+    # Status command (converted to bytes 0,2)
     STATUS_REQUEST = 0
-    START_OPERATION = 1
-    STOP_OPERATION = 2
-    EMERGENCY_STOP = 3
     
-    # Mode commands
-    SET_AUTOMATIC_MODE = 10
-    SET_MANUAL_MODE = 11
-    SET_NIGHT_MODE = 12
+    # Aisle commands (converted to aisle_number,1)
+    OPEN_AISLE_1 = 1
+    OPEN_AISLE_2 = 2
+    OPEN_AISLE_3 = 3
+    OPEN_AISLE_4 = 4
+    OPEN_AISLE_5 = 5
+    OPEN_AISLE_6 = 6
+    OPEN_AISLE_7 = 7
+    OPEN_AISLE_8 = 8
+    OPEN_AISLE_9 = 9
+    OPEN_AISLE_10 = 10
+    OPEN_AISLE_11 = 11
+    OPEN_AISLE_12 = 12
+    OPEN_AISLE_13 = 13
+    OPEN_AISLE_14 = 14
+    OPEN_AISLE_15 = 15
+    OPEN_AISLE_16 = 16
+    OPEN_AISLE_17 = 17
+    OPEN_AISLE_18 = 18
+    OPEN_AISLE_19 = 19
     
-    # Mobile commands
-    RELEASE_MOBILES = 20
-    LOCK_MOBILES = 21
-    
-    # Aisle commands
+    # Legacy commands for compatibility (will use old format)
+    START_OPERATION = 100
+    STOP_OPERATION = 101
+    SET_AUTOMATIC_MODE = 102
+    SET_MANUAL_MODE = 103
+    SET_NIGHT_MODE = 104
+    RELEASE_MOBILES = 105
+    LOCK_MOBILES = 106
     OPEN_AISLE = 30
     CLOSE_AISLE = 31
 
