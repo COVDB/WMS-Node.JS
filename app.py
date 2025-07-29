@@ -117,6 +117,28 @@ def create_connection():
     host = st.session_state.get('host', '1.1.1.2')
     port = st.session_state.get('port', 2000)
     
+    # Check if running in cloud environment
+    import os
+    is_cloud = os.getenv('STREAMLIT_SHARING') or 'streamlit.app' in os.getenv('HOSTNAME', '')
+    
+    if is_cloud:
+        st.warning("🌐 **Cloud Environment Detected**")
+        st.info("""
+        **TCP-IP connections to external systems are not available in Streamlit Community Cloud.**
+        
+        **For full PLC connectivity:**
+        1. Download this app from GitHub
+        2. Run locally: `streamlit run app.py`
+        3. Connect to your Mobile Racking system
+        
+        **Available in Cloud:**
+        - ✅ Code Generator (all languages)
+        - ✅ Documentation and guides
+        - ✅ Interface preview
+        - ✅ Offline diagnostics
+        """)
+        return False
+    
     # Progress bar and status updates
     progress_bar = st.progress(0)
     status_text = st.empty()
@@ -1086,27 +1108,78 @@ def main():
         elif selected_page == "💻 Code Generator":
             render_protocol_generator()
         else:
-            # Quick start guide with Stow branding
-            st.markdown("""
-            <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 2rem; border-radius: 10px; margin: 2rem 0;">
-                <h2 style="color: #2c3e50; margin-top: 0;">🚀 Stow Mobile Racking Quick Start Guide</h2>
-            </div>
-            """, unsafe_allow_html=True)
+            # Check if in cloud environment
+            import os
+            is_cloud = os.getenv('STREAMLIT_SHARING') or 'streamlit.app' in os.getenv('HOSTNAME', '')
             
-            # Welcome section with proper Streamlit styling
-            st.markdown("""
-            <div class="metric-card" style="margin: 1rem 0;">
-                <h3 style="color: #2c3e50; margin-top: 0;">Welcome to the Stow WMS Mobile Racking Control System</h3>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Getting started steps
-            st.markdown("#### 📋 Getting Started:")
-            st.markdown("""
-            1. **Configure Connection:** Set IP address and port in the sidebar
-            2. **Connect:** Click the Connect button to establish communication  
-            3. **Navigate:** Use the sidebar to access different system areas
-            """)
+            if is_cloud:
+                # Cloud-specific welcome message
+                st.markdown("""
+                <div style="background: linear-gradient(135deg, #3498db, #2980b9); padding: 2rem; border-radius: 10px; color: white; margin: 2rem 0;">
+                    <h2 style="margin: 0; text-align: center;">🌐 Stow WMS Demo Environment</h2>
+                    <p style="margin: 0.5rem 0 0 0; text-align: center; opacity: 0.9;">Experience the interface - Download for full PLC connectivity</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Demo limitations notice
+                st.markdown("""
+                <div class="metric-card" style="border-left: 4px solid #f39c12;">
+                    <h3 style="color: #f39c12; margin-top: 0;">📋 Demo Environment Notice</h3>
+                    <p style="margin: 0.5rem 0;">This is a demonstration version running on Streamlit Community Cloud. 
+                    TCP-IP connections to external PLC systems are not available in this environment.</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # What works in cloud
+                st.markdown("### ✅ Available Features in Cloud Demo:")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.success("**💻 Code Generator** - Generate integration code for 5 programming languages")
+                    st.success("**📖 Documentation** - Complete setup guides and examples")
+                
+                with col2:
+                    st.success("**🎨 Interface Preview** - See the full Stow-branded interface")
+                    st.success("**📊 Feature Overview** - Explore all available capabilities")
+                
+                # Download instructions
+                st.markdown("### 🚀 Get Full Functionality:")
+                
+                st.markdown("""
+                <div class="metric-card" style="border-left: 4px solid #27ae60;">
+                    <h4 style="color: #27ae60; margin-top: 0;">📥 Download for PLC Connectivity</h4>
+                    <ol>
+                        <li><strong>Clone Repository:</strong> <code>git clone https://github.com/COVDB/WMS-Node.JS.git</code></li>
+                        <li><strong>Install Dependencies:</strong> <code>pip install -r requirements.txt</code></li>
+                        <li><strong>Run Locally:</strong> <code>streamlit run app.py</code></li>
+                        <li><strong>Connect to PLC:</strong> Full TCP-IP connectivity available</li>
+                    </ol>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            else:
+                # Local environment - original quick start guide
+                st.markdown("""
+                <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 2rem; border-radius: 10px; margin: 2rem 0;">
+                    <h2 style="color: #2c3e50; margin-top: 0;">🚀 Stow Mobile Racking Quick Start Guide</h2>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Welcome section with proper Streamlit styling
+                st.markdown("""
+                <div class="metric-card" style="margin: 1rem 0;">
+                    <h3 style="color: #2c3e50; margin-top: 0;">Welcome to the Stow WMS Mobile Racking Control System</h3>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Getting started steps
+                st.markdown("#### 📋 Getting Started:")
+                st.markdown("""
+                1. **Configure Connection:** Set IP address and port in the sidebar
+                2. **Connect:** Click the Connect button to establish communication  
+                3. **Navigate:** Use the sidebar to access different system areas
+                """)
             
             # System areas with proper Streamlit columns
             st.markdown("### 🏭 System Areas Overview")
