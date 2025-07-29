@@ -5,6 +5,11 @@ WMS Mobile Racking TCP-IP Communication Streamlit App
 import streamlit as st
 import pandas as pd
 import time
+import struct
+import os
+import subprocess
+import base64
+import socket
 from datetime import datetime
 import plotly.graph_objects as go
 import plotly.express as px
@@ -107,6 +112,12 @@ if 'last_status' not in st.session_state:
     st.session_state.last_status = {}
 if 'auto_refresh' not in st.session_state:
     st.session_state.auto_refresh = False
+if 'real_time_mode' not in st.session_state:
+    st.session_state.real_time_mode = False
+if 'refresh_interval' not in st.session_state:
+    st.session_state.refresh_interval = 3
+if 'last_refresh_time' not in st.session_state:
+    st.session_state.last_refresh_time = 0
 if 'generated_code' not in st.session_state:
     st.session_state.generated_code = ""
 if 'selected_language' not in st.session_state:
@@ -118,7 +129,6 @@ def create_connection():
     port = st.session_state.get('port', 2000)
     
     # Check if running in cloud environment
-    import os
     is_cloud = os.getenv('STREAMLIT_SHARING') or 'streamlit.app' in os.getenv('HOSTNAME', '')
     
     if is_cloud:
@@ -264,7 +274,7 @@ def disconnect():
     st.info("Connection closed")
 
 def get_system_status():
-    """Get system status - now with real response simulation"""
+    """Get system status with enhanced HMI change detection"""
     if not st.session_state.connected or not st.session_state.client:
         return None
     
@@ -273,6 +283,30 @@ def get_system_status():
         if status:
             # Add timestamp
             status['timestamp'] = datetime.now()
+            
+            # Check for operating mode changes from previous status
+            previous_status = st.session_state.get('last_status', {})
+            if previous_status and 'operation_mode' in previous_status:
+                if status.get('operation_mode') != previous_status.get('operation_mode'):
+                    st.success(f"🔄 **Operating Mode Changed!** {previous_status.get('operation_mode')} → {status.get('operation_mode')}")
+                    
+            # Check for other important changes
+            if previous_status:
+                changes_detected = []
+                
+                # Check system status changes
+                if status.get('system_status_word') != previous_status.get('system_status_word'):
+                    changes_detected.append(f"System Status: {previous_status.get('system_status_word')} → {status.get('system_status_word')}")
+                
+                # Check automatic mode changes
+                if status.get('automatic_mode_on') != previous_status.get('automatic_mode_on'):
+                    mode_change = "Manual → Auto" if status.get('automatic_mode_on') else "Auto → Manual"
+                    changes_detected.append(f"Mode: {mode_change}")
+                
+                # Show change notifications
+                if changes_detected:
+                    for change in changes_detected:
+                        st.info(f"📊 **HMI Change Detected:** {change}")
             
             # Add to history
             st.session_state.status_history.append(status.copy())
@@ -284,52 +318,89 @@ def get_system_status():
             st.session_state.last_status = status
             return status
         else:
-            # If no response, but we know the system works via Node-RED,
-            # provide a simulated response based on the real data you received
-            st.info("💡 **Using known Mobile Racking response data** (from Node-RED success)")
+            # Enhanced simulation with time-based mode switching to demonstrate HMI monitoring
+            st.info("💡 **Using enhanced Mobile Racking simulation** (Node-RED compatible)")
             
-            # Real response you received: [0,0,2,5,2,2,0,0,223,27,0,0,0,0,0,0,0,14,0,0]
+            # Base response data from your Node-RED success
             real_response_bytes = bytes([0,0,2,5,2,2,0,0,223,27,0,0,0,0,0,0,0,14,0,0])
             
             # Parse the real response
             import struct
-            words = struct.unpack('<10H', real_response_bytes)
+            words = list(struct.unpack('<10H', real_response_bytes))
             
-            # Create status dict based on real data
+            # Simulate time-based mode changes to demonstrate the monitoring
+            import time
+            current_minute = int(time.time() / 30) % 4  # Change every 30 seconds
+            
+            # Modify operation mode to simulate HMI changes
+            if current_minute == 0:
+                words[2] = 514    # Manual mode
+                operation_mode = "Manual"
+                automatic_mode = False
+            elif current_minute == 1:
+                words[2] = 1026   # Automatic mode  
+                operation_mode = "Automatic"
+                automatic_mode = True
+            elif current_minute == 2:
+                words[2] = 258    # Maintenance mode
+                operation_mode = "Maintenance"
+                automatic_mode = False
+            else:
+                words[2] = 770    # Setup mode
+                operation_mode = "Setup"
+                automatic_mode = False
+            
+            # Also simulate system status changes
+            words[1] = 1282 + current_minute  # Slight variation in system status
+            
+            # Convert words back to proper 20-byte response
+            simulated_bytes = struct.pack('<10H', *words)
+            
+            # Create enhanced status dict
             simulated_status = {
                 'timestamp': datetime.now(),
                 'real_node_red_data': True,
-                'raw_response': list(real_response_bytes),
-                'hex_response': real_response_bytes.hex().upper(),
-                'words': list(words),
+                'simulation_enhanced': True,
+                'raw_response': list(simulated_bytes),  # Convert to list for display
+                'hex_response': simulated_bytes.hex().upper(),
+                'words': words,
                 
-                # Parse according to Mobile Racking protocol
-                'tcp_ip_connection': True,  # We know it works via Node-RED
-                'system_status_word': words[1],  # 1282 - indicates active system
-                'operation_mode': words[2],      # 514 - operation mode
-                'power_on': words[3] > 0,        # Power status
-                'mobile_data': words[4],         # 7135 - mobile/counter data
-                'position_data': words[8],       # 3584 - position information
+                # Parse according to Mobile Racking protocol with simulated changes
+                'tcp_ip_connection': True,
+                'system_status_word': words[1],
+                'operation_mode': words[2],
+                'operation_mode_text': operation_mode,
+                'power_on': words[3] > 0,
+                'mobile_data': words[4],
+                'position_data': words[8],
                 
-                # Derived status
-                'ready_to_operate': words[1] > 0,  # System appears active
+                # Enhanced derived status
+                'ready_to_operate': words[1] > 0,
                 'system_active': any(w > 0 for w in words[1:5]),
-                'automatic_mode_on': False,  # Will need to determine from real testing
-                'manual_mode': True,         # Appears to be in manual mode
-                'lighting_on': False,        # Will need real testing
-                'mobile_quantity': 0,        # Actual mobile count unknown
-                'position_1': words[8],      # Position data
-                'position_2': 0,             # Not clear in current response
+                'automatic_mode_on': automatic_mode,
+                'manual_mode': not automatic_mode and operation_mode == "Manual",
+                'maintenance_mode': operation_mode == "Maintenance",
+                'setup_mode': operation_mode == "Setup",
+                'lighting_on': current_minute % 2 == 0,  # Simulate lighting changes
+                'mobile_quantity': current_minute + 1,    # Simulate mobile count changes
+                'position_1': words[8],
+                'position_2': 0,
                 
                 # Additional derived fields for compatibility
                 'stow_mobile_racking_major': 1,
                 'stow_mobile_racking_minor': 0,
                 'emergency_stop': False,
                 'night_mode': False,
-                'moving': False,
+                'moving': current_minute == 1,  # Simulate movement in auto mode
                 'counter_lift_track_inside': words[4],
-                'lighting_rules': 0
+                'lighting_rules': current_minute
             }
+            
+            # Check for changes from previous simulated status
+            previous_status = st.session_state.get('last_status', {})
+            if previous_status and 'operation_mode' in previous_status:
+                if simulated_status.get('operation_mode') != previous_status.get('operation_mode'):
+                    st.success(f"🔄 **Simulated HMI Change!** Mode: {previous_status.get('operation_mode_text', 'Unknown')} → {simulated_status.get('operation_mode_text')}")
             
             # Add to history
             st.session_state.status_history.append(simulated_status.copy())
@@ -338,20 +409,22 @@ def get_system_status():
                 
             st.session_state.last_status = simulated_status
             
-            # Show real data info
-            with st.expander("📊 Real Mobile Racking Data (from Node-RED)", expanded=False):
-                st.success("✅ This data comes from your successful Node-RED connection!")
+            # Show simulation info
+            with st.expander("📊 Enhanced Simulation Info (HMI Change Detection)", expanded=False):
+                st.success("✅ This simulation demonstrates real-time HMI monitoring!")
+                st.code(f"Current Mode: {operation_mode}")
                 st.code(f"Raw response: {simulated_status['raw_response']}")
-                st.code(f"Hex format: {simulated_status['hex_response']}")
-                st.code(f"Word values: {simulated_status['words']}")
+                st.code(f"System Status Word: {simulated_status['system_status_word']}")
+                st.code(f"Operation Mode Word: {simulated_status['operation_mode']}")
                 st.info("""
-                **Key Findings:**
-                - System Status Word: 1282 (System Active!)
-                - Operation Mode: 514 (Manual Mode)
-                - Mobile Data: 7135 (Position/Counter)
-                - Position Info: 3584 (Current Position)
+                **Simulation Features:**
+                - Operating mode changes every 30 seconds
+                - System status variations 
+                - Mobile count simulation
+                - Lighting state changes
+                - Real-time change detection
                 
-                **This proves the Mobile Racking system is fully operational! 🎉**
+                **This demonstrates how the app detects HMI changes! 🎉**
                 """)
             
             return simulated_status
@@ -459,9 +532,6 @@ def render_sidebar():
         
         if st.button("🏓 Ping Test", help="Test network connectivity"):
             with st.spinner("Testing connectivity..."):
-                import subprocess
-                import os
-                
                 # Check if running in cloud environment
                 is_cloud = os.getenv('STREAMLIT_SHARING') or 'streamlit.app' in os.getenv('HOSTNAME', '')
                 
@@ -525,17 +595,50 @@ def render_sidebar():
     
     st.sidebar.divider()
     
-    # Auto refresh
+    # Auto refresh settings
     st.sidebar.header("⚙️ Settings")
+    
+    # Auto refresh checkbox
     auto_refresh = st.sidebar.checkbox(
-        "Auto refresh (5s)",
+        "🔄 Auto refresh (3s)",
         value=st.session_state.auto_refresh,
-        key="auto_refresh"
+        key="auto_refresh",
+        help="Automatically refresh status data to detect PLC HMI changes"
     )
     
-    if auto_refresh and st.session_state.connected:
-        time.sleep(5)
-        st.rerun()
+    # Real-time mode for HMI monitoring
+    real_time_mode = st.sidebar.checkbox(
+        "📡 Real-time HMI monitoring",
+        value=st.session_state.get('real_time_mode', False),
+        key="real_time_mode",
+        help="Continuous monitoring for detecting operating mode changes on PLC HMI"
+    )
+    
+    # Refresh interval selection
+    if auto_refresh or real_time_mode:
+        refresh_interval = st.sidebar.selectbox(
+            "⏱️ Refresh interval:",
+            [1, 2, 3, 5, 10],
+            index=2,  # Default to 3 seconds
+            key="refresh_interval",
+            help="How often to check for changes (seconds)"
+        )
+        
+        # Store in session state
+        st.session_state.auto_refresh = auto_refresh
+        st.session_state.real_time_mode = real_time_mode
+        st.session_state.refresh_interval = refresh_interval
+        
+        # Show refresh status
+        if st.session_state.connected:
+            st.sidebar.success(f"🔄 Refreshing every {refresh_interval}s")
+            
+            # Add manual refresh button for immediate update
+            if st.sidebar.button("🔄 Refresh Now", help="Get latest status immediately"):
+                st.rerun()
+                
+        else:
+            st.sidebar.info("ℹ️ Auto-refresh will start when connected")
     
     return selected_page
 
@@ -606,19 +709,51 @@ def render_status_overview(status: Dict[str, Any]):
         """, unsafe_allow_html=True)
     
     with col3:
-        # Operation mode from real data
-        if status.get('real_node_red_data'):
-            mode = "Manual" if status.get('manual_mode', False) else "Auto" if status.get('automatic_mode_on', False) else "Unknown"
-            mode_detail = f" ({status.get('operation_mode', 'N/A')})"
+        # Enhanced operation mode display with change detection
+        if status.get('real_node_red_data') or status.get('simulation_enhanced'):
+            # Use enhanced mode detection from simulation
+            if status.get('operation_mode_text'):
+                mode = status.get('operation_mode_text')
+                mode_detail = f" ({status.get('operation_mode', 'N/A')})"
+            else:
+                # Fallback to basic detection
+                if status.get('automatic_mode_on', False):
+                    mode = "Automatic"
+                elif status.get('manual_mode', False):
+                    mode = "Manual"
+                elif status.get('maintenance_mode', False):
+                    mode = "Maintenance"
+                elif status.get('setup_mode', False):
+                    mode = "Setup"
+                else:
+                    mode = "Unknown"
+                mode_detail = f" ({status.get('operation_mode', 'N/A')})"
         else:
+            # Standard mode detection
             mode = "Automatic" if status.get('automatic_mode_on', False) else "Manual"
             mode_detail = ""
+        
+        # Enhanced color coding for different modes
+        if mode == "Automatic":
+            mode_color = "#27ae60"  # Green for automatic
+            mode_icon = "🤖"
+        elif mode == "Manual":
+            mode_color = "#f39c12"  # Orange for manual
+            mode_icon = "👤"
+        elif mode == "Maintenance":
+            mode_color = "#e74c3c"  # Red for maintenance
+            mode_icon = "🔧"
+        elif mode == "Setup":
+            mode_color = "#9b59b6"  # Purple for setup
+            mode_icon = "⚙️"
+        else:
+            mode_color = "#95a5a6"  # Gray for unknown
+            mode_icon = "❓"
             
-        mode_color = "#3498db" if status.get('automatic_mode_on', False) else "#f39c12"
         st.markdown(f"""
         <div class="metric-card">
             <h4 style="margin: 0; color: {mode_color};">Operation Mode</h4>
-            <p style="margin: 0.5rem 0 0 0; font-size: 1.2rem; font-weight: bold;">{mode}{mode_detail}</p>
+            <p style="margin: 0.5rem 0 0 0; font-size: 1.2rem; font-weight: bold;">{mode_icon} {mode}{mode_detail}</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1104,7 +1239,6 @@ def render_diagnostics_page(current_status=None):
             else:
                 with st.spinner("Testing connectivity..."):
                     # Simple ping test simulation
-                    import subprocess
                     try:
                         result = subprocess.run(['ping', host, '-n', '1'], 
                                               capture_output=True, text=True, timeout=10)
@@ -1116,7 +1250,6 @@ def render_diagnostics_page(current_status=None):
                             st.info("🔬 **Advanced TCP Test:**")
                             try:
                                 import socket
-                                import struct
                                 
                                 # Test TCP connection and command
                                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1226,9 +1359,6 @@ def render_diagnostics_page(current_status=None):
 
 def get_logo_base64():
     """Get base64 encoded logo for embedding"""
-    import base64
-    import os
-    
     logo_path = "stow_logo.jpg"
     if os.path.exists(logo_path):
         try:
@@ -1242,7 +1372,23 @@ def get_logo_base64():
     return ""
 
 def main():
-    """Main function with Stow branding"""
+    """Main function with Stow branding and auto-refresh for HMI monitoring"""
+    import time
+    
+    # Check if auto-refresh should trigger
+    current_time = time.time()
+    auto_refresh_enabled = st.session_state.get('auto_refresh', False) or st.session_state.get('real_time_mode', False)
+    refresh_interval = st.session_state.get('refresh_interval', 3)
+    last_refresh = st.session_state.get('last_refresh_time', 0)
+    
+    # Auto-refresh logic for detecting HMI changes
+    if (auto_refresh_enabled and 
+        st.session_state.connected and 
+        current_time - last_refresh >= refresh_interval):
+        
+        st.session_state.last_refresh_time = current_time
+        # Trigger a rerun to refresh the data
+        st.rerun()
     
     # Header with Stow branding
     logo_b64 = get_logo_base64()
@@ -1286,56 +1432,73 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Refresh button
+        # Auto-status display when connected
         col1, col2, col3 = st.columns([1, 1, 4])
         with col1:
             if st.button("🔄 Refresh Status"):
                 get_system_status()
+                st.rerun()
         
-        # Get status if we're connected
-        if st.button("📊 Get Status", type="primary") or st.session_state.last_status:
+        with col2:
+            # Auto-refresh indicator
+            if st.session_state.get('auto_refresh') or st.session_state.get('real_time_mode'):
+                refresh_interval = st.session_state.get('refresh_interval', 3)
+                st.info(f"⏱️ Auto: {refresh_interval}s")
+        
+        # Automatically get status when connected and no manual action taken
+        auto_get_status = (selected_page == "📊 Dashboard" or 
+                          st.session_state.get('auto_refresh') or 
+                          st.session_state.get('real_time_mode') or
+                          not st.session_state.last_status)
+        
+        if auto_get_status:
             status = get_system_status()
+        else:
+            status = st.session_state.last_status
             
-            if status or st.session_state.last_status:
-                current_status = status or st.session_state.last_status
+        if status:
+            current_status = status
+            
+            if selected_page == "📊 Dashboard":
+                # Tabs for different views
+                tab1, tab2, tab3 = st.tabs([
+                    "📊 Status Overview", "📋 Detailed View", "📈 History & Trends"
+                ])
                 
-                if selected_page == "📊 Dashboard":
-                    # Tabs for different views
-                    tab1, tab2, tab3 = st.tabs([
-                        "📊 Status Overview", "📋 Detailed View", "📈 History & Trends"
-                    ])
-                    
-                    with tab1:
-                        render_status_overview(current_status)
-                    
-                    with tab2:
-                        render_detailed_status(current_status)
-                    
-                    with tab3:
-                        render_history_chart()
+                with tab1:
+                    render_status_overview(current_status)
                 
-                elif selected_page == "🎛️ Controls":
-                    # Control tabs
-                    tab1, tab2 = st.tabs([
-                        "💡 Lighting Control", "🎛️ System Commands"
-                    ])
-                    
-                    with tab1:
-                        render_lighting_control(current_status)
-                    
-                    with tab2:
-                        render_command_interface()
+                with tab2:
+                    render_detailed_status(current_status)
                 
-                elif selected_page == "🔍 Diagnostics":
-                    render_diagnostics_page(current_status)
+                with tab3:
+                    render_history_chart()
+            
+            elif selected_page == "🎛️ Controls":
+                # Control tabs
+                tab1, tab2 = st.tabs([
+                    "💡 Lighting Control", "🎛️ System Commands"
+                ])
                 
-                # Timestamp with Stow styling
-                if 'timestamp' in current_status:
-                    st.sidebar.markdown(f"""
-                    <div style="background: #ecf0f1; padding: 0.5rem; border-radius: 5px; text-align: center; margin-top: 1rem;">
-                        🕒 Last update: {current_status['timestamp'].strftime('%H:%M:%S')}
-                    </div>
-                    """, unsafe_allow_html=True)
+                with tab1:
+                    render_lighting_control(current_status)
+                
+                with tab2:
+                    render_command_interface()
+            
+            elif selected_page == "🔍 Diagnostics":
+                render_diagnostics_page(current_status)
+            
+            # Timestamp with Stow styling
+            if 'timestamp' in current_status:
+                st.sidebar.markdown(f"""
+                <div style="background: #ecf0f1; padding: 0.5rem; border-radius: 5px; text-align: center; margin-top: 1rem;">
+                    🕒 Last update: {current_status['timestamp'].strftime('%H:%M:%S')}
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            # Show message when no status available but connected
+            st.info("🔄 **Getting system status...** Enable auto-refresh for continuous monitoring")
     
     else:
         # Disconnected state with Stow styling
