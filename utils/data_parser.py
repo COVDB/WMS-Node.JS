@@ -1,5 +1,5 @@
 """
-Data parsing utilities voor WMS systeem
+Data parsing utilities for WMS system
 """
 
 import struct
@@ -8,25 +8,25 @@ from datetime import datetime
 
 def format_hex_data(data: bytes) -> str:
     """
-    Format bytes data als hex string voor debugging
+    Format bytes data as hex string for debugging
     
     Args:
         data (bytes): Raw bytes data
         
     Returns:
-        str: Geformatteerde hex string
+        str: Formatted hex string
     """
     return ' '.join(f'{b:02X}' for b in data)
 
 def parse_lighting_rules(dword_value: int) -> List[int]:
     """
-    Parse lighting rules DWORD naar lijst van aisle nummers
+    Parse lighting rules DWORD to list of aisle numbers
     
     Args:
-        dword_value (int): 32-bit DWORD waarde
+        dword_value (int): 32-bit DWORD value
         
     Returns:
-        List[int]: Lijst van aisle nummers die aan zijn (1-32)
+        List[int]: List of aisle numbers that are on (1-32)
     """
     aisles = []
     for i in range(32):
@@ -36,13 +36,13 @@ def parse_lighting_rules(dword_value: int) -> List[int]:
 
 def create_lighting_rules(aisles: List[int]) -> int:
     """
-    Maak lighting rules DWORD van lijst aisle nummers
+    Create lighting rules DWORD from list of aisle numbers
     
     Args:
-        aisles (List[int]): Lijst van aisle nummers (1-32)
+        aisles (List[int]): List of aisle numbers (1-32)
         
     Returns:
-        int: 32-bit DWORD waarde
+        int: 32-bit DWORD value
     """
     dword_value = 0
     for aisle in aisles:
@@ -52,13 +52,13 @@ def create_lighting_rules(aisles: List[int]) -> int:
 
 def validate_status_data(status: Dict[str, Any]) -> Dict[str, List[str]]:
     """
-    Valideer status data en return waarschuwingen/fouten
+    Validate status data and return warnings/errors
     
     Args:
         status (Dict): Status dictionary
         
     Returns:
-        Dict: Dictionary met 'warnings' en 'errors' lijsten
+        Dict: Dictionary with 'warnings' and 'errors' lists
     """
     result = {'warnings': [], 'errors': []}
     
@@ -84,25 +84,25 @@ def validate_status_data(status: Dict[str, Any]) -> Dict[str, List[str]]:
     
     # Check critical status
     if not status.get('tcp_ip_connection', False):
-        result['errors'].append("TCP-IP verbinding verbroken")
+        result['errors'].append("TCP-IP connection broken")
     
     if not status.get('power_on', False):
-        result['warnings'].append("Systeem power is uit")
+        result['warnings'].append("System power is off")
     
     # Check operational modes
     auto_mode = status.get('automatic_mode_on', False)
     manual_mode = status.get('manual_mode_on', False)
     
     if not auto_mode and not manual_mode:
-        result['warnings'].append("Geen operationele mode actief")
+        result['warnings'].append("No operational mode active")
     elif auto_mode and manual_mode:
-        result['warnings'].append("Beide modes tegelijk actief")
+        result['warnings'].append("Both modes active simultaneously")
     
     if status.get('mobiles_are_moving', False):
-        result['warnings'].append("Mobiles zijn in beweging")
+        result['warnings'].append("Mobiles are currently moving")
     
     return result
 
 def format_timestamp() -> str:
-    """Return geformatteerde timestamp"""
+    """Return formatted timestamp"""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")

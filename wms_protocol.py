@@ -1,6 +1,6 @@
 """
-WMS Protocol Definitie
-Gebaseerd op Mobile Racking WMS-Data specificatie
+WMS Protocol Definition
+Based on Mobile Racking WMS-Data specification
 """
 
 from enum import Enum
@@ -8,21 +8,21 @@ from dataclasses import dataclass
 from typing import Dict, Any
 
 class DataType(Enum):
-    """Data types volgens WMS specificatie"""
+    """Data types according to WMS specification"""
     BOOL = "Bool"
     BYTE = "Byte" 
     DWORD = "DWord"
 
 @dataclass
 class WMSField:
-    """WMS data veld definitie"""
+    """WMS data field definition"""
     name: str
     data_type: DataType
     offset: float
     start_value: Any
     comment: str
     
-# WMS-Data structuur volgens specificatie
+# WMS-Data structure according to specification
 WMS_DATA_STRUCTURE = {
     'command_request': WMSField(
         name="Command: Request A...",
@@ -230,9 +230,9 @@ WMS_DATA_STRUCTURE = {
 }
 
 class WMSCommands:
-    """WMS Command definities"""
+    """WMS Command definitions"""
     
-    # Basis commands
+    # Basic commands
     STATUS_REQUEST = 0
     START_OPERATION = 1
     STOP_OPERATION = 2
@@ -253,13 +253,13 @@ class WMSCommands:
 
 def get_status_description(status: Dict[str, Any]) -> Dict[str, str]:
     """
-    Converteer status waarden naar leesbare beschrijvingen
+    Convert status values to readable descriptions
     
     Args:
-        status (Dict): Status dictionary van TCP client
+        status (Dict): Status dictionary from TCP client
         
     Returns:
-        Dict: Dictionary met leesbare beschrijvingen
+        Dict: Dictionary with readable descriptions
     """
     descriptions = {}
     

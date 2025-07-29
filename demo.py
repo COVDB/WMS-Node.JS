@@ -1,6 +1,6 @@
 """
-Demo script voor WMS TCP-IP communicatie
-Test script om de functionaliteit te demonstreren
+Demo script for WMS TCP-IP communication
+Test script to demonstrate functionality
 """
 
 import time
@@ -11,23 +11,23 @@ from utils.data_parser import validate_status_data, format_timestamp
 from utils.logger import wms_logger
 
 def demo_tcp_communication():
-    """Demonstreer TCP-IP communicatie"""
+    """Demonstrate TCP-IP communication"""
     print("=== WMS Mobile Racking TCP-IP Demo ===\n")
     
-    # Configuratie
-    host = "127.0.0.1"  # Voor lokale test
+    # Configuration
+    host = "127.0.0.1"  # For local test
     port = 2000
     
-    print(f"Verbinden naar {host}:{port}...")
+    print(f"Connecting to {host}:{port}...")
     
-    # Maak verbinding
+    # Create connection
     with TCPClient(host, port) as client:
         if not client.connect():
-            print("❌ Kan geen verbinding maken")
-            print("💡 Tip: Start eerst een test server of pas het IP adres aan")
+            print("❌ Cannot establish connection")
+            print("💡 Tip: Start a test server first or adjust the IP address")
             return
         
-        print("✅ Verbinding succesvol!\n")
+        print("✅ Connection successful!\n")
         
         # Test commands
         test_commands = [
@@ -37,21 +37,21 @@ def demo_tcp_communication():
         ]
         
         for name, command in test_commands:
-            print(f"📤 Verzenden: {name} (Command: {command})")
+            print(f"📤 Sending: {name} (Command: {command})")
             
             response = client.send_command(command)
             if response:
-                print(f"📥 Response ontvangen: {len(response)} bytes")
+                print(f"📥 Response received: {len(response)} bytes")
                 print(f"   Hex: {response.hex()}")
                 
-                # Parse als status response
+                # Parse as status response
                 if command == WMSCommands.STATUS_REQUEST:
                     status = client.parse_status_response(response)
                     if status:
-                        print("📊 Geparsde status:")
+                        print("📊 Parsed status:")
                         validation = validate_status_data(status)
                         
-                        # Toon belangrijke parameters
+                        # Show important parameters
                         important_params = [
                             'tcp_ip_connection', 'power_on', 
                             'automatic_mode_on', 'manual_mode_on',
@@ -62,7 +62,7 @@ def demo_tcp_communication():
                             if param in status:
                                 print(f"   {param}: {status[param]}")
                         
-                        # Toon warnings/errors
+                        # Show warnings/errors
                         if validation['errors']:
                             print("   🚨 Errors:")
                             for error in validation['errors']:
@@ -73,34 +73,34 @@ def demo_tcp_communication():
                             for warning in validation['warnings']:
                                 print(f"     - {warning}")
             else:
-                print("❌ Geen response ontvangen")
+                print("❌ No response received")
             
             print()
-            time.sleep(1)  # Korte pauze tussen commands
+            time.sleep(1)  # Short pause between commands
 
 def create_test_server():
-    """Maak een simpele test server voor demo doeleinden"""
+    """Create a simple test server for demo purposes"""
     import socket
     import threading
     
     def handle_client(conn, addr):
-        """Handle client verbinding"""
-        print(f"Test server: Client verbonden vanaf {addr}")
+        """Handle client connection"""
+        print(f"Test server: Client connected from {addr}")
         
         try:
             while True:
-                # Ontvang 2-byte command
+                # Receive 2-byte command
                 data = conn.recv(2)
                 if not data:
                     break
                 
                 command = struct.unpack('<H', data)[0]
-                print(f"Test server: Command ontvangen: {command}")
+                print(f"Test server: Command received: {command}")
                 
-                # Stuur mock 20-byte response
+                # Send mock 20-byte response
                 mock_response = bytearray(20)
                 
-                # Zet wat test waarden
+                # Set some test values
                 mock_response[0:2] = struct.pack('<H', command)  # Echo command
                 mock_response[2] = 1  # Command start operation = True
                 mock_response[4] = 2  # Version major
@@ -111,24 +111,24 @@ def create_test_server():
                 mock_response[15] = 4  # Mobile quantity = 4
                 
                 conn.send(bytes(mock_response))
-                print(f"Test server: Response verzonden: {len(mock_response)} bytes")
+                print(f"Test server: Response sent: {len(mock_response)} bytes")
                 
         except Exception as e:
             print(f"Test server error: {e}")
         finally:
             conn.close()
-            print(f"Test server: Client {addr} verbroken")
+            print(f"Test server: Client {addr} disconnected")
     
     def start_server():
-        """Start de test server"""
+        """Start the test server"""
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
         try:
             server_socket.bind(('127.0.0.1', 2000))
             server_socket.listen(1)
-            print("🖥️  Test server gestart op 127.0.0.1:2000")
-            print("   Wachtend op verbindingen...\n")
+            print("🖥️  Test server started on 127.0.0.1:2000")
+            print("   Waiting for connections...\n")
             
             while True:
                 conn, addr = server_socket.accept()
@@ -140,7 +140,7 @@ def create_test_server():
                 client_thread.start()
                 
         except KeyboardInterrupt:
-            print("\n🛑 Test server gestopt")
+            print("\n🛑 Test server stopped")
         except Exception as e:
             print(f"Test server error: {e}")
         finally:
@@ -155,33 +155,33 @@ def create_test_server():
 
 if __name__ == "__main__":
     print("WMS Mobile Racking Demo\n")
-    print("Kies een optie:")
-    print("1. Start test server en demo client")
-    print("2. Alleen demo client (verbind naar externe server)")
-    print("3. Alleen test server")
+    print("Choose an option:")
+    print("1. Start test server and demo client")
+    print("2. Demo client only (connect to external server)")
+    print("3. Test server only")
     
-    choice = input("\nKeuze (1-3): ").strip()
+    choice = input("\nChoice (1-3): ").strip()
     
     if choice == "1":
-        print("\n🚀 Starten test server...")
+        print("\n🚀 Starting test server...")
         server_thread = create_test_server()
-        time.sleep(2)  # Geef server tijd om te starten
+        time.sleep(2)  # Give server time to start
         
-        print("🚀 Starten demo client...")
+        print("🚀 Starting demo client...")
         demo_tcp_communication()
         
     elif choice == "2":
-        host = input("IP adres (Enter voor 1.1.1.2): ").strip() or "1.1.1.2"
+        host = input("IP address (Enter for 1.1.1.2): ").strip() or "1.1.1.2"
         demo_tcp_communication()
         
     elif choice == "3":
-        print("\n🖥️  Alleen test server starten...")
+        print("\n🖥️  Starting test server only...")
         server_thread = create_test_server()
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
-            print("\n🛑 Test server gestopt")
+            print("\n🛑 Test server stopped")
     
     else:
-        print("Ongeldige keuze")
+        print("Invalid choice")

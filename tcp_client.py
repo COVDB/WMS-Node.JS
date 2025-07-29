@@ -1,6 +1,6 @@
 """
-TCP-IP Client voor Mobile Racking communicatie
-Gebaseerd op WMS protocol specificatie
+TCP-IP Client for Mobile Racking communication
+Based on WMS protocol specification
 """
 
 import socket
@@ -14,15 +14,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class TCPClient:
-    """TCP-IP client voor communicatie met Mobile Racking systeem"""
+    """TCP-IP client for communication with Mobile Racking system"""
     
     def __init__(self, host: str = "1.1.1.2", port: int = 2000):
         """
-        Initialiseer TCP client
+        Initialize TCP client
         
         Args:
-            host (str): IP adres van de Mobile Racking controller
-            port (int): TCP poort (standaard 2000)
+            host (str): IP address of the Mobile Racking controller
+            port (int): TCP port (default 2000)
         """
         self.host = host
         self.port = port
@@ -31,16 +31,16 @@ class TCPClient:
         
     def connect(self) -> bool:
         """
-        Maak verbinding met de Mobile Racking controller
+        Connect to the Mobile Racking controller
         
         Returns:
-            bool: True als verbinding succesvol, False anders
+            bool: True if connection successful, False otherwise
         """
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(10.0)  # 10 seconden timeout voor PLC via VPN
+            self.socket.settimeout(10.0)  # 10 second timeout for PLC via VPN
             
-            logger.info(f"Proberen verbinding naar {self.host}:{self.port}...")
+            logger.info(f"Attempting connection to {self.host}:{self.port}...")
             start_time = time.time()
             
             self.socket.connect((self.host, self.port))
@@ -49,41 +49,41 @@ class TCPClient:
             connect_time = (end_time - start_time) * 1000
             
             self.connected = True
-            logger.info(f"Verbonden met {self.host}:{self.port} in {connect_time:.0f}ms")
+            logger.info(f"Connected to {self.host}:{self.port} in {connect_time:.0f}ms")
             return True
             
         except socket.timeout:
-            logger.error(f"Verbinding timeout naar {self.host}:{self.port} (>10s)")
+            logger.error(f"Connection timeout to {self.host}:{self.port} (>10s)")
             self.connected = False
             return False
         except ConnectionRefusedError:
-            logger.error(f"Verbinding geweigerd door {self.host}:{self.port} - Service niet actief")
+            logger.error(f"Connection refused by {self.host}:{self.port} - Service not active")
             self.connected = False
             return False
         except socket.gaierror as e:
-            logger.error(f"DNS/Host resolutie fout: {e}")
+            logger.error(f"DNS/Host resolution error: {e}")
             self.connected = False
             return False
         except OSError as e:
             if e.errno == 10061:
-                logger.error(f"Verbinding geweigerd (Error 10061) - Poort {self.port} niet open op {self.host}")
+                logger.error(f"Connection refused (Error 10061) - Port {self.port} not open on {self.host}")
             elif e.errno == 10060:
-                logger.error(f"Verbinding timeout (Error 10060) - Host niet bereikbaar")
+                logger.error(f"Connection timeout (Error 10060) - Host not reachable")
             else:
                 logger.error(f"OS Error {e.errno}: {e}")
             self.connected = False
             return False
         except Exception as e:
-            logger.error(f"Onbekende fout bij verbinden: {e}")
+            logger.error(f"Unknown error during connection: {e}")
             self.connected = False
             return False
     
     def disconnect(self):
-        """Verbreek verbinding"""
+        """Disconnect from the controller"""
         if self.socket:
             try:
                 self.socket.close()
-                logger.info("Verbinding verbroken")
+                logger.info("Connection closed")
             except:
                 pass
             finally:
@@ -92,79 +92,79 @@ class TCPClient:
     
     def send_command(self, command: int) -> Optional[bytes]:
         """
-        Verzend een 2-byte command en ontvang 20-byte response
+        Send a 2-byte command and receive 20-byte response
         
         Args:
-            command (int): Command nummer (0-65535)
+            command (int): Command number (0-65535)
             
         Returns:
-            Optional[bytes]: 20-byte response of None bij fout
+            Optional[bytes]: 20-byte response or None on error
         """
         if not self.connected or not self.socket:
-            logger.error("Geen verbinding")
+            logger.error("No connection")
             return None
             
         try:
-            # Verstuur 2-byte command (little endian)
+            # Send 2-byte command (little endian)
             command_bytes = struct.pack('<H', command)
             
-            logger.debug(f"Verzenden command: {command} ({command_bytes.hex()})")
+            logger.debug(f"Sending command: {command} ({command_bytes.hex()})")
             self.socket.send(command_bytes)
             
-            # Ontvang 20-byte response met timeout handling
+            # Receive 20-byte response with timeout handling
             response = b""
             start_time = time.time()
-            max_wait_time = 5.0  # 5 seconden timeout voor response
+            max_wait_time = 5.0  # 5 second timeout for response
             
             while len(response) < 20:
                 # Check timeout
                 if time.time() - start_time > max_wait_time:
-                    logger.error(f"Timeout bij ontvangen response na {max_wait_time}s")
+                    logger.error(f"Timeout receiving response after {max_wait_time}s")
                     self.connected = False
                     return None
                 
                 try:
-                    # Ontvang met korte timeout per chunk
+                    # Receive with short timeout per chunk
                     self.socket.settimeout(1.0)
                     chunk = self.socket.recv(20 - len(response))
                     
                     if not chunk:
-                        logger.error("Verbinding verbroken tijdens ontvangst")
+                        logger.error("Connection broken during receive")
                         self.connected = False
                         return None
                         
                     response += chunk
-                    logger.debug(f"Chunk ontvangen: {len(chunk)} bytes, totaal: {len(response)}/20")
+                    logger.debug(f"Chunk received: {len(chunk)} bytes, total: {len(response)}/20")
                     
                 except socket.timeout:
-                    # Korte timeout is OK, probeer opnieuw
+                    # Short timeout is OK, try again
                     continue
                 except socket.error as e:
-                    logger.error(f"Socket error tijdens ontvangst: {e}")
+                    logger.error(f"Socket error during receive: {e}")
                     self.connected = False
                     return None
             
-            # Reset socket timeout naar origineel
+            # Reset socket timeout to original
             self.socket.settimeout(10.0)
             
-            logger.debug(f"Volledige response ontvangen: {response.hex()}")
+            logger.debug(f"Complete response received: {response.hex()}")
             return response
             
         except socket.error as e:
-            logger.error(f"Communicatie fout: {e}")
+            logger.error(f"Communication error: {e}")
             self.connected = False
             return None
         except Exception as e:
-            logger.error(f"Onbekende fout bij send_command: {e}")
+            logger.error(f"Unknown error in send_command: {e}")
             self.connected = False
             return None
     
     def get_status(self) -> Optional[Dict[str, Any]]:
         """
-        Haal volledige status op van het Mobile Racking systeem
+        Get complete status from the Mobile Racking system
         
         Returns:
-            Optional[Dict]: Status dictionary of None bij fout
+            Optional[Dict]: Status dictionary or None on error
         """
         response = self.send_command(0)  # Status request command
         if response:
@@ -173,20 +173,20 @@ class TCPClient:
     
     def parse_status_response(self, response: bytes) -> Dict[str, Any]:
         """
-        Parse de 20-byte status response volgens WMS specificatie
+        Parse the 20-byte status response according to WMS specification
         
         Args:
             response (bytes): 20-byte response
             
         Returns:
-            Dict: Geparsde status data
+            Dict: Parsed status data
         """
         if len(response) != 20:
-            logger.error(f"Ongeldige response lengte: {len(response)} (verwacht 20)")
+            logger.error(f"Invalid response length: {len(response)} (expected 20)")
             return {}
         
         try:
-            # Parse volgens WMS-Data structuur
+            # Parse according to WMS-Data structure
             status = {}
             
             # Byte 0-1: Command Request (Byte)
@@ -243,7 +243,7 @@ class TCPClient:
             return status
             
         except Exception as e:
-            logger.error(f"Fout bij parsen response: {e}")
+            logger.error(f"Error parsing response: {e}")
             return {}
     
     def __enter__(self):

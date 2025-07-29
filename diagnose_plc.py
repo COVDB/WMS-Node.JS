@@ -1,5 +1,5 @@
 """
-PLC Diagnose Tool - Uitgebreide troubleshooting voor TCP-IP verbinding
+PLC Diagnostic Tool - Extended troubleshooting for TCP-IP connection
 """
 
 import socket
@@ -10,8 +10,8 @@ import sys
 from tcp_client import TCPClient
 
 def check_network_basics(host):
-    """Check basis netwerk connectiviteit"""
-    print(f"=== NETWERK DIAGNOSE voor {host} ===\n")
+    """Check basic network connectivity"""
+    print(f"=== NETWORK DIAGNOSTICS for {host} ===\n")
     
     # 1. Ping test
     print("1. Ping Test:")
@@ -24,29 +24,29 @@ def check_network_basics(host):
         )
         
         if result.returncode == 0:
-            print("✅ Ping SUCCESVOL")
+            print("✅ Ping SUCCESSFUL")
             # Extract ping times
             lines = result.stdout.split('\n')
             for line in lines:
                 if 'time=' in line or 'Average' in line:
                     print(f"   {line.strip()}")
         else:
-            print("❌ Ping MISLUKT")
+            print("❌ Ping FAILED")
             print(f"   Error: {result.stderr}")
             return False
             
     except Exception as e:
-        print(f"❌ Ping test fout: {e}")
+        print(f"❌ Ping test error: {e}")
         return False
     
     return True
 
 def check_port_connectivity(host, port):
-    """Check TCP poort connectiviteit met verschillende methodes"""
-    print(f"\n2. TCP Poort {port} Connectiviteit:")
+    """Check TCP port connectivity with different methods"""
+    print(f"\n2. TCP Port {port} Connectivity:")
     
-    # Methode 1: Socket connect test
-    print(f"   a) Socket connect test naar {host}:{port}")
+    # Method 1: Socket connect test
+    print(f"   a) Socket connect test to {host}:{port}")
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(10)
@@ -56,41 +56,41 @@ def check_port_connectivity(host, port):
         sock.close()
         
         if result == 0:
-            print(f"   ✅ Poort {port} is OPEN ({(end_time-start_time)*1000:.0f}ms)")
+            print(f"   ✅ Port {port} is OPEN ({(end_time-start_time)*1000:.0f}ms)")
             return True
         else:
-            print(f"   ❌ Poort {port} is GESLOTEN (Error: {result})")
+            print(f"   ❌ Port {port} is CLOSED (Error: {result})")
             if result == 10061:
-                print("      → Connection refused - Service draait niet")
+                print("      → Connection refused - Service not running")
             elif result == 10060:
-                print("      → Timeout - Host niet bereikbaar of firewall")
+                print("      → Timeout - Host not reachable or firewall")
             return False
             
     except Exception as e:
-        print(f"   ❌ Socket test fout: {e}")
+        print(f"   ❌ Socket test error: {e}")
         return False
 
 def test_plc_protocol(host, port):
-    """Test specifiek PLC protocol communicatie"""
+    """Test specific PLC protocol communication"""
     print(f"\n3. PLC Protocol Test:")
     
-    print(f"   Verbinden naar PLC op {host}:{port}...")
+    print(f"   Connecting to PLC at {host}:{port}...")
     
     try:
         client = TCPClient(host, port)
         
         if not client.connect():
-            print("   ❌ PLC verbinding mislukt")
+            print("   ❌ PLC connection failed")
             return False
         
-        print("   ✅ PLC verbinding succesvol!")
+        print("   ✅ PLC connection successful!")
         
         # Test status command
         print("   Testing status command (0)...")
         response = client.send_command(0)
         
         if response:
-            print(f"   ✅ Status response ontvangen: {len(response)} bytes")
+            print(f"   ✅ Status response received: {len(response)} bytes")
             print(f"      Hex: {response.hex()}")
             
             # Parse basic status

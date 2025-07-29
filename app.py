@@ -1,5 +1,5 @@
 """
-WMS Mobile Racking TCP-IP Communicatie Streamlit App
+WMS Mobile Racking TCP-IP Communication Streamlit App
 """
 
 import streamlit as st
@@ -40,22 +40,22 @@ if 'auto_refresh' not in st.session_state:
     st.session_state.auto_refresh = False
 
 def create_connection():
-    """Maak verbinding met Mobile Racking controller"""
+    """Create connection to Mobile Racking controller"""
     host = st.session_state.get('host', '1.1.1.2')
     port = st.session_state.get('port', 2000)
     
-    # Progress bar en status updates
+    # Progress bar and status updates
     progress_bar = st.progress(0)
     status_text = st.empty()
     
     try:
-        status_text.text("🔍 Initialiseren verbinding...")
+        status_text.text("🔍 Initializing connection...")
         progress_bar.progress(10)
         
         if st.session_state.client:
             st.session_state.client.disconnect()
         
-        status_text.text(f"🔌 Verbinden naar {host}:{port}...")
+        status_text.text(f"🔌 Connecting to {host}:{port}...")
         progress_bar.progress(30)
         
         st.session_state.client = TCPClient(host, port)
@@ -70,49 +70,49 @@ def create_connection():
             st.session_state.connected = True
             status_text.empty()
             progress_bar.empty()
-            st.success(f"✅ Verbonden met {host}:{port}")
+            st.success(f"✅ Connected to {host}:{port}")
             wms_logger.log_connection(host, port, True)
             
-            # Test direct een status request
-            with st.spinner("📊 Testing verbinding met status request..."):
+            # Test directly with a status request
+            with st.spinner("📊 Testing connection with status request..."):
                 status = st.session_state.client.get_status()
                 if status:
-                    st.info("🎉 Status succesvol ontvangen - verbinding werkt!")
+                    st.info("🎉 Status successfully received - connection works!")
                 else:
-                    st.warning("⚠️ Verbinding OK maar geen status ontvangen")
+                    st.warning("⚠️ Connection OK but no status received")
         else:
             st.session_state.connected = False
             status_text.empty()
             progress_bar.empty()
             
-            # Detailiere error message
-            st.error(f"❌ Verbinding mislukt naar {host}:{port}")
+            # Detailed error message
+            st.error(f"❌ Connection failed to {host}:{port}")
             
-            # Geef specifieke diagnose tips
-            with st.expander("🔍 Diagnose en oplossingen", expanded=True):
+            # Give specific diagnostic tips
+            with st.expander("🔍 Diagnostics and solutions", expanded=True):
                 st.markdown("""
-                **Mogelijke oorzaken:**
+                **Possible causes:**
                 
-                1. **PLC Service niet actief**
-                   - Mobile Racking software draait niet
-                   - TCP-IP server module niet gestart
+                1. **PLC Service not active**
+                   - Mobile Racking software not running
+                   - TCP-IP server module not started
                    - PLC in STOP mode
                 
-                2. **Netwerk problemen**
-                   - VPN verbinding instabiel
-                   - Firewall blokkeert poort 2000
-                   - Port forwarding niet geconfigureerd
+                2. **Network problems**
+                   - VPN connection unstable
+                   - Firewall blocking port 2000
+                   - Port forwarding not configured
                 
-                3. **Configuratie problemen**
-                   - Verkeerd IP adres
-                   - Verkeerde poort nummer
-                   - PLC TCP-IP module verkeerd geconfigureerd
+                3. **Configuration problems**
+                   - Wrong IP address
+                   - Wrong port number
+                   - PLC TCP-IP module misconfigured
                 
-                **Wat te doen:**
-                1. Controleer of je de PLC kan pingen: `ping 1.1.1.2`
-                2. Check of de Mobile Racking software draait op de PLC
-                3. Vraag PLC beheerder om TCP-IP server status te checken
-                4. Test vanaf een andere machine op hetzelfde netwerk
+                **What to do:**
+                1. Check if you can ping the PLC: `ping 1.1.1.2`
+                2. Check if Mobile Racking software is running on the PLC
+                3. Ask PLC administrator to check TCP-IP server status
+                4. Test from another machine on the same network
                 """)
                 
                 # Test buttons
@@ -120,12 +120,12 @@ def create_connection():
                 with col1:
                     if st.button("🏓 Test Ping"):
                         with st.spinner("Pinging..."):
-                            # Dit zou je kunnen implementeren met subprocess
-                            st.info("Ping test functie - implementeer in terminal")
+                            # This could be implemented with subprocess
+                            st.info("Ping test function - implement in terminal")
                 
                 with col2:
-                    if st.button("🔍 Uitgebreide Diagnose"):
-                        st.info("Run 'python diagnose_plc.py' in terminal voor volledige diagnose")
+                    if st.button("🔍 Extended Diagnostics"):
+                        st.info("Run 'python diagnose_plc.py' in terminal for full diagnostics")
             
             wms_logger.log_connection(host, port, False)
             
@@ -133,119 +133,119 @@ def create_connection():
         st.session_state.connected = False
         progress_bar.empty()
         status_text.empty()
-        st.error(f"❌ Onverwachte fout: {e}")
+        st.error(f"❌ Unexpected error: {e}")
         
-        with st.expander("📋 Technische details"):
+        with st.expander("📋 Technical details"):
             st.code(str(e))
-            st.markdown("**Debug info:** Check logs voor meer details")
+            st.markdown("**Debug info:** Check logs for more details")
 
 def disconnect():
-    """Verbreek verbinding"""
+    """Disconnect from controller"""
     if st.session_state.client:
         st.session_state.client.disconnect()
     st.session_state.connected = False
     st.session_state.client = None
-    st.info("Verbinding verbroken")
+    st.info("Connection closed")
 
 def get_system_status():
-    """Haal systeem status op"""
+    """Get system status"""
     if not st.session_state.connected or not st.session_state.client:
         return None
     
     try:
         status = st.session_state.client.get_status()
         if status:
-            # Voeg timestamp toe
+            # Add timestamp
             status['timestamp'] = datetime.now()
             
-            # Voeg toe aan historie
+            # Add to history
             st.session_state.status_history.append(status.copy())
             
-            # Bewaar alleen laatste 100 entries
+            # Keep only last 100 entries
             if len(st.session_state.status_history) > 100:
                 st.session_state.status_history = st.session_state.status_history[-100:]
             
             st.session_state.last_status = status
             return status
         else:
-            st.error("Geen status ontvangen")
+            st.error("No status received")
             return None
             
     except Exception as e:
-        st.error(f"Fout bij ophalen status: {e}")
+        st.error(f"Error getting status: {e}")
         return None
 
 def send_command(command: int):
-    """Verzend command naar controller"""
+    """Send command to controller"""
     if not st.session_state.connected or not st.session_state.client:
-        st.error("Geen verbinding")
+        st.error("No connection")
         return False
     
     try:
         response = st.session_state.client.send_command(command)
         if response:
-            st.success(f"Command {command} verzonden")
+            st.success(f"Command {command} sent")
             wms_logger.log_command(command, len(response))
             return True
         else:
-            st.error(f"Command {command} mislukt")
+            st.error(f"Command {command} failed")
             wms_logger.log_command(command, None)
             return False
             
     except Exception as e:
-        st.error(f"Fout bij verzenden command: {e}")
+        st.error(f"Error sending command: {e}")
         return False
 
 def render_sidebar():
-    """Render zijbalk met verbinding configuratie"""
-    st.sidebar.header("🔌 Verbinding")
+    """Render sidebar with connection configuration"""
+    st.sidebar.header("🔌 Connection")
     
-    # Verbinding configuratie
-    host = st.sidebar.text_input("IP Adres", value="1.1.1.2", key="host")
+    # Connection configuration
+    host = st.sidebar.text_input("IP Address", value="1.1.1.2", key="host")
     
-    # Poort selectie met detectie
-    st.sidebar.write("**Poort Configuratie:**")
+    # Port selection with detection
+    st.sidebar.write("**Port Configuration:**")
     port_option = st.sidebar.radio(
-        "Selecteer poort:",
+        "Select port:",
         ["2001 (Detected ✅)", "2000 (Original)", "Custom"],
         key="port_option"
     )
     
     if port_option == "2001 (Detected ✅)":
         port = 2001
-        st.sidebar.success("Poort 2001 gedetecteerd als open!")
+        st.sidebar.success("Port 2001 detected as open!")
     elif port_option == "2000 (Original)":
         port = 2000
-        st.sidebar.warning("Poort 2000 lijkt gesloten")
+        st.sidebar.warning("Port 2000 appears closed")
     else:  # Custom
-        port = st.sidebar.number_input("Custom poort:", min_value=1, max_value=65535, value=2001)
+        port = st.sidebar.number_input("Custom port:", min_value=1, max_value=65535, value=2001)
     
     st.session_state.port = port
     
     # Connection status indicator
     if st.session_state.connected:
-        st.sidebar.success(f"🟢 Verbonden met {host}:{port}")
+        st.sidebar.success(f"🟢 Connected to {host}:{port}")
     else:
-        st.sidebar.error("🔴 Niet verbonden")
+        st.sidebar.error("🔴 Not connected")
     
-    # Verbinding knoppen
+    # Connection buttons
     col1, col2 = st.sidebar.columns(2)
     
     with col1:
-        if st.button("Verbinden", type="primary", disabled=st.session_state.connected):
+        if st.button("Connect", type="primary", disabled=st.session_state.connected):
             create_connection()
     
     with col2:
-        if st.button("Verbreken", disabled=not st.session_state.connected):
+        if st.button("Disconnect", disabled=not st.session_state.connected):
             disconnect()
     
     st.sidebar.divider()
     
     # Quick port scan
-    st.sidebar.header("🔍 Diagnose")
-    if st.button("Port Scan", help="Scan open poorten op de PLC"):
-        with st.spinner("Scanning poorten..."):
-            # Quick port test voor diagnose
+    st.sidebar.header("🔍 Diagnostics")
+    if st.button("Port Scan", help="Scan open ports on the PLC"):
+        with st.spinner("Scanning ports..."):
+            # Quick port test for diagnostics
             from port_scanner import test_port
             test_ports = [2000, 2001, 2002, 102, 4840]
             open_ports = []
@@ -256,16 +256,16 @@ def render_sidebar():
                     open_ports.append((p, response_time))
             
             if open_ports:
-                st.sidebar.success(f"Open poorten gevonden:")
+                st.sidebar.success(f"Open ports found:")
                 for p, rt in open_ports:
-                    st.sidebar.write(f"• Poort {p} ({rt:.0f}ms)")
+                    st.sidebar.write(f"• Port {p} ({rt:.0f}ms)")
             else:
-                st.sidebar.error("Geen open poorten gevonden")
+                st.sidebar.error("No open ports found")
     
     st.sidebar.divider()
     
     # Auto refresh
-    st.sidebar.header("⚙️ Instellingen")
+    st.sidebar.header("⚙️ Settings")
     auto_refresh = st.sidebar.checkbox(
         "Auto refresh (5s)",
         value=st.session_state.auto_refresh,
@@ -277,10 +277,10 @@ def render_sidebar():
         st.rerun()
 
 def render_status_overview(status: Dict[str, Any]):
-    """Render status overzicht"""
-    st.header("📊 Systeem Status")
+    """Render status overview"""
+    st.header("📊 System Status")
     
-    # Validatie
+    # Validation
     validation = validate_status_data(status)
     
     # Alerts
@@ -297,7 +297,7 @@ def render_status_overview(status: Dict[str, Any]):
     
     with col1:
         tcp_status = "🟢 OK" if status.get('tcp_ip_connection', False) else "🔴 NOK"
-        st.metric("TCP-IP Verbinding", tcp_status)
+        st.metric("TCP-IP Connection", tcp_status)
     
     with col2:
         power_status = "🟢 ON" if status.get('power_on', False) else "🔴 OFF"
@@ -312,10 +312,10 @@ def render_status_overview(status: Dict[str, Any]):
         st.metric("Mobile Quantity", mobile_qty)
 
 def render_detailed_status(status: Dict[str, Any]):
-    """Render gedetailleerde status tabel"""
-    st.header("📋 Gedetailleerde Status")
+    """Render detailed status table"""
+    st.header("📋 Detailed Status")
     
-    # Maak DataFrame
+    # Create DataFrame
     status_data = []
     descriptions = get_status_description(status)
     
@@ -324,47 +324,47 @@ def render_detailed_status(status: Dict[str, Any]):
             field_info = WMS_DATA_STRUCTURE.get(key)
             status_data.append({
                 'Parameter': key.replace('_', ' ').title(),
-                'Waarde': descriptions.get(key, str(value)),
+                'Value': descriptions.get(key, str(value)),
                 'Type': field_info.data_type.value if field_info else 'Unknown',
                 'Offset': str(field_info.offset) if field_info else 'N/A',
-                'Beschrijving': field_info.comment if field_info else 'N/A'
+                'Description': field_info.comment if field_info else 'N/A'
             })
     
     df = pd.DataFrame(status_data)
     
-    # Filter opties
+    # Filter options
     col1, col2 = st.columns(2)
     with col1:
-        filter_type = st.selectbox("Filter op type:", ["Alle", "Bool", "Byte", "DWord"])
+        filter_type = st.selectbox("Filter by type:", ["All", "Bool", "Byte", "DWord"])
     with col2:
-        show_only_active = st.checkbox("Alleen actieve waardes")
+        show_only_active = st.checkbox("Only active values")
     
     # Apply filters
-    if filter_type != "Alle":
+    if filter_type != "All":
         df = df[df['Type'] == filter_type]
     
     if show_only_active:
-        df = df[df['Waarde'].isin(['OK', 'True']) | df['Waarde'].str.isdigit()]
+        df = df[df['Value'].isin(['OK', 'True']) | df['Value'].str.isdigit()]
     
     # Display table
     st.dataframe(df, use_container_width=True, hide_index=True)
 
 def render_lighting_control(status: Dict[str, Any]):
-    """Render lighting controle interface"""
+    """Render lighting control interface"""
     st.header("💡 Lighting Control")
     
-    # Parse huidige lighting rules
+    # Parse current lighting rules
     lighting_rules = status.get('lighting_rules', 0)
     active_aisles = parse_lighting_rules(lighting_rules)
     
-    st.write(f"Actieve aisles: {', '.join(map(str, active_aisles)) if active_aisles else 'Geen'}")
+    st.write(f"Active aisles: {', '.join(map(str, active_aisles)) if active_aisles else 'None'}")
     
-    # Aisle selectie (1-32)
+    # Aisle selection (1-32)
     col1, col2 = st.columns(2)
     
     with col1:
         selected_aisles = st.multiselect(
-            "Selecteer aisles om te activeren:",
+            "Select aisles to activate:",
             options=list(range(1, 33)),
             default=active_aisles,
             key="lighting_aisles"
@@ -372,18 +372,18 @@ def render_lighting_control(status: Dict[str, Any]):
     
     with col2:
         if st.button("Update Lighting", type="primary"):
-            # Dit zou een custom command implementation vereisen
-            st.info("Lighting update functionaliteit nog niet geïmplementeerd")
+            # This would require a custom command implementation
+            st.info("Lighting update functionality not yet implemented")
 
 def render_command_interface():
     """Render command interface"""
     st.header("🎛️ Command Interface")
     
-    # Voorgedefinieerde commands
+    # Predefined commands
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.subheader("Basis Commands")
+        st.subheader("Basic Commands")
         if st.button("Status Request"):
             send_command(WMSCommands.STATUS_REQUEST)
         if st.button("Start Operation"):
@@ -415,35 +415,35 @@ def render_command_interface():
     
     with col1:
         custom_command = st.number_input(
-            "Command nummer (0-65535):",
+            "Command number (0-65535):",
             min_value=0,
             max_value=65535,
             value=0
         )
     
     with col2:
-        if st.button("Verzend"):
+        if st.button("Send"):
             send_command(custom_command)
 
 def render_history_chart():
-    """Render status historie grafiek"""
-    st.header("📈 Status Historie")
+    """Render status history chart"""
+    st.header("📈 Status History")
     
     if not st.session_state.status_history:
-        st.info("Geen historie data beschikbaar")
+        st.info("No history data available")
         return
     
-    # Maak DataFrame van historie
+    # Create DataFrame from history
     history_df = pd.DataFrame(st.session_state.status_history)
     
-    # Selecteer parameters om te plotten
+    # Select parameters to plot
     numeric_params = [
         'mobile_quantity', 'counter_lift_track_inside', 
         'stow_mobile_racking_major', 'stow_mobile_racking_minor'
     ]
     
     selected_param = st.selectbox(
-        "Selecteer parameter:",
+        "Select parameter:",
         options=numeric_params,
         format_func=lambda x: x.replace('_', ' ').title()
     )
@@ -453,37 +453,37 @@ def render_history_chart():
             history_df,
             x='timestamp',
             y=selected_param,
-            title=f"{selected_param.replace('_', ' ').title()} over tijd"
+            title=f"{selected_param.replace('_', ' ').title()} over time"
         )
         st.plotly_chart(fig, use_container_width=True)
 
 def main():
-    """Hoofdfunctie"""
+    """Main function"""
     st.title("🏭 WMS Mobile Racking Controller")
-    st.markdown("TCP-IP communicatie interface voor Mobile Racking systemen")
+    st.markdown("TCP-IP communication interface for Mobile Racking systems")
     
     # Render sidebar
     render_sidebar()
     
     # Main content
     if st.session_state.connected:
-        # Refresh knop
+        # Refresh button
         col1, col2, col3 = st.columns([1, 1, 4])
         with col1:
             if st.button("🔄 Refresh Status"):
                 get_system_status()
         
-        # Haal status op als we verbonden zijn
+        # Get status if we're connected
         if st.button("📊 Get Status", type="primary") or st.session_state.last_status:
             status = get_system_status()
             
             if status or st.session_state.last_status:
                 current_status = status or st.session_state.last_status
                 
-                # Tabs voor verschillende views
+                # Tabs for different views
                 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-                    "Status Overview", "Gedetailleerd", "Lighting Control", 
-                    "Commands", "Historie"
+                    "Status Overview", "Detailed", "Lighting Control", 
+                    "Commands", "History"
                 ])
                 
                 with tab1:
@@ -503,20 +503,20 @@ def main():
                 
                 # Timestamp
                 if 'timestamp' in current_status:
-                    st.sidebar.write(f"Laatste update: {current_status['timestamp'].strftime('%H:%M:%S')}")
+                    st.sidebar.write(f"Last update: {current_status['timestamp'].strftime('%H:%M:%S')}")
     
     else:
-        st.info("👆 Maak eerst verbinding via de sidebar")
+        st.info("👆 Connect first via the sidebar")
         
-        # Toon live diagnose
-        st.header("🔍 PLC Diagnose")
+        # Show live diagnostics
+        st.header("🔍 PLC Diagnostics")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("📡 Netwerk Status")
+            st.subheader("📡 Network Status")
             
-            # Test basis connectiviteit
+            # Test basic connectivity
             if st.button("🏓 Test Ping"):
                 with st.spinner("Testing ping..."):
                     import subprocess
@@ -526,15 +526,15 @@ def main():
                             capture_output=True, text=True, timeout=10
                         )
                         if result.returncode == 0:
-                            st.success("✅ Ping succesvol - netwerk OK")
+                            st.success("✅ Ping successful - network OK")
                         else:
-                            st.error("❌ Ping mislukt - netwerk probleem")
+                            st.error("❌ Ping failed - network problem")
                     except Exception as e:
-                        st.error(f"Ping test fout: {e}")
+                        st.error(f"Ping test error: {e}")
             
-            # Test poorten
-            if st.button("🔍 Scan Poorten"):
-                with st.spinner("Scanning poorten..."):
+            # Test ports
+            if st.button("🔍 Scan Ports"):
+                with st.spinner("Scanning ports..."):
                     from port_scanner import test_port
                     
                     test_ports = [
@@ -549,37 +549,37 @@ def main():
                         _, is_open, response_time = test_port("1.1.1.2", port, 3)
                         port_results.append((port, desc, is_open, response_time))
                     
-                    # Toon resultaten
+                    # Show results
                     for port, desc, is_open, rt in port_results:
                         if is_open:
-                            st.success(f"✅ Poort {port} ({desc}): OPEN ({rt:.0f}ms)")
+                            st.success(f"✅ Port {port} ({desc}): OPEN ({rt:.0f}ms)")
                         else:
-                            st.error(f"❌ Poort {port} ({desc}): GESLOTEN")
+                            st.error(f"❌ Port {port} ({desc}): CLOSED")
         
         with col2:
             st.subheader("🏭 Mobile Racking Status")
             
-            st.warning("⚠️ Mobile Racking TCP-IP service niet gedetecteerd")
+            st.warning("⚠️ Mobile Racking TCP-IP service not detected")
             
             st.markdown("""
-            **Waarschijnlijke oorzaken:**
-            - Mobile Racking software draait niet
-            - TCP-IP server module niet actief  
-            - Verkeerde poort configuratie
+            **Probable causes:**
+            - Mobile Racking software not running
+            - TCP-IP server module not active  
+            - Wrong port configuration
             - PLC in STOP mode
             
-            **Vereiste actie:**
-            Neem contact op met PLC technicus om:
-            1. Mobile Racking software te starten
-            2. TCP-IP communicatie module te activeren
-            3. Poort configuratie te verifiëren
+            **Required action:**
+            Contact PLC technician to:
+            1. Start Mobile Racking software
+            2. Activate TCP-IP communication module
+            3. Verify port configuration
             """)
         
-        # Toon voorbeelddata
-        st.header("📖 Voorbeeld WMS Data Structuur")
+        # Show example data
+        st.header("📖 Example WMS Data Structure")
         
         example_data = []
-        for key, field in list(WMS_DATA_STRUCTURE.items())[:10]:  # Toon eerste 10
+        for key, field in list(WMS_DATA_STRUCTURE.items())[:10]:  # Show first 10
             example_data.append({
                 'Parameter': field.name[:30] + "..." if len(field.name) > 30 else field.name,
                 'Type': field.data_type.value,

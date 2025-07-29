@@ -1,5 +1,5 @@
 """
-Logging utilities voor WMS systeem
+Logging utilities for WMS system
 """
 
 import logging
@@ -8,20 +8,20 @@ from datetime import datetime
 from typing import Optional
 
 class WMSLogger:
-    """Custom logger voor WMS applicatie"""
+    """Custom logger for WMS application"""
     
     def __init__(self, name: str = "WMS", log_file: Optional[str] = None):
         """
-        Initialiseer logger
+        Initialize logger
         
         Args:
-            name (str): Logger naam
-            log_file (Optional[str]): Pad naar log bestand
+            name (str): Logger name
+            log_file (Optional[str]): Path to log file
         """
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.INFO)
         
-        # Voorkomen van duplicate handlers
+        # Prevent duplicate handlers
         if not self.logger.handlers:
             # Console handler
             console_handler = logging.StreamHandler()
@@ -35,7 +35,7 @@ class WMSLogger:
             console_handler.setFormatter(formatter)
             self.logger.addHandler(console_handler)
             
-            # File handler (optioneel)
+            # File handler (optional)
             if log_file:
                 os.makedirs(os.path.dirname(log_file), exist_ok=True)
                 file_handler = logging.FileHandler(log_file)
@@ -60,16 +60,16 @@ class WMSLogger:
         self.logger.debug(message)
     
     def log_connection(self, host: str, port: int, success: bool):
-        """Log verbinding poging"""
-        status = "succesvol" if success else "mislukt"
-        self.info(f"Verbinding naar {host}:{port} {status}")
+        """Log connection attempt"""
+        status = "successful" if success else "failed"
+        self.info(f"Connection to {host}:{port} {status}")
     
     def log_command(self, command: int, response_length: Optional[int] = None):
-        """Log command verzending"""
+        """Log command sending"""
         if response_length is not None:
-            self.info(f"Command {command} verzonden, {response_length} bytes ontvangen")
+            self.info(f"Command {command} sent, {response_length} bytes received")
         else:
-            self.warning(f"Command {command} verzonden, geen response")
+            self.warning(f"Command {command} sent, no response")
     
     def log_status_update(self, status_summary: str):
         """Log status update"""
