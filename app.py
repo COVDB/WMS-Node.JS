@@ -44,24 +44,100 @@ def create_connection():
     host = st.session_state.get('host', '1.1.1.2')
     port = st.session_state.get('port', 2000)
     
+    # Progress bar en status updates
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
     try:
+        status_text.text("🔍 Initialiseren verbinding...")
+        progress_bar.progress(10)
+        
         if st.session_state.client:
             st.session_state.client.disconnect()
         
+        status_text.text(f"🔌 Verbinden naar {host}:{port}...")
+        progress_bar.progress(30)
+        
         st.session_state.client = TCPClient(host, port)
+        
+        status_text.text("📡 TCP handshake...")
+        progress_bar.progress(60)
+        
         success = st.session_state.client.connect()
-        st.session_state.connected = success
+        progress_bar.progress(100)
         
         if success:
-            st.success(f"Verbonden met {host}:{port}")
+            st.session_state.connected = True
+            status_text.empty()
+            progress_bar.empty()
+            st.success(f"✅ Verbonden met {host}:{port}")
             wms_logger.log_connection(host, port, True)
+            
+            # Test direct een status request
+            with st.spinner("📊 Testing verbinding met status request..."):
+                status = st.session_state.client.get_status()
+                if status:
+                    st.info("🎉 Status succesvol ontvangen - verbinding werkt!")
+                else:
+                    st.warning("⚠️ Verbinding OK maar geen status ontvangen")
         else:
-            st.error(f"Verbinding mislukt naar {host}:{port}")
+            st.session_state.connected = False
+            status_text.empty()
+            progress_bar.empty()
+            
+            # Detailiere error message
+            st.error(f"❌ Verbinding mislukt naar {host}:{port}")
+            
+            # Geef specifieke diagnose tips
+            with st.expander("🔍 Diagnose en oplossingen", expanded=True):
+                st.markdown("""
+                **Mogelijke oorzaken:**
+                
+                1. **PLC Service niet actief**
+                   - Mobile Racking software draait niet
+                   - TCP-IP server module niet gestart
+                   - PLC in STOP mode
+                
+                2. **Netwerk problemen**
+                   - VPN verbinding instabiel
+                   - Firewall blokkeert poort 2000
+                   - Port forwarding niet geconfigureerd
+                
+                3. **Configuratie problemen**
+                   - Verkeerd IP adres
+                   - Verkeerde poort nummer
+                   - PLC TCP-IP module verkeerd geconfigureerd
+                
+                **Wat te doen:**
+                1. Controleer of je de PLC kan pingen: `ping 1.1.1.2`
+                2. Check of de Mobile Racking software draait op de PLC
+                3. Vraag PLC beheerder om TCP-IP server status te checken
+                4. Test vanaf een andere machine op hetzelfde netwerk
+                """)
+                
+                # Test buttons
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("🏓 Test Ping"):
+                        with st.spinner("Pinging..."):
+                            # Dit zou je kunnen implementeren met subprocess
+                            st.info("Ping test functie - implementeer in terminal")
+                
+                with col2:
+                    if st.button("🔍 Uitgebreide Diagnose"):
+                        st.info("Run 'python diagnose_plc.py' in terminal voor volledige diagnose")
+            
             wms_logger.log_connection(host, port, False)
             
     except Exception as e:
-        st.error(f"Fout bij verbinden: {e}")
         st.session_state.connected = False
+        progress_bar.empty()
+        status_text.empty()
+        st.error(f"❌ Onverwachte fout: {e}")
+        
+        with st.expander("📋 Technische details"):
+            st.code(str(e))
+            st.markdown("**Debug info:** Check logs voor meer details")
 
 def disconnect():
     """Verbreek verbinding"""

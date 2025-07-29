@@ -38,14 +38,43 @@ class TCPClient:
         """
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(5.0)  # 5 seconden timeout
+            self.socket.settimeout(10.0)  # 10 seconden timeout voor PLC via VPN
+            
+            logger.info(f"Proberen verbinding naar {self.host}:{self.port}...")
+            start_time = time.time()
+            
             self.socket.connect((self.host, self.port))
+            
+            end_time = time.time()
+            connect_time = (end_time - start_time) * 1000
+            
             self.connected = True
-            logger.info(f"Verbonden met {self.host}:{self.port}")
+            logger.info(f"Verbonden met {self.host}:{self.port} in {connect_time:.0f}ms")
             return True
             
-        except socket.error as e:
-            logger.error(f"Verbinding mislukt: {e}")
+        except socket.timeout:
+            logger.error(f"Verbinding timeout naar {self.host}:{self.port} (>10s)")
+            self.connected = False
+            return False
+        except ConnectionRefusedError:
+            logger.error(f"Verbinding geweigerd door {self.host}:{self.port} - Service niet actief")
+            self.connected = False
+            return False
+        except socket.gaierror as e:
+            logger.error(f"DNS/Host resolutie fout: {e}")
+            self.connected = False
+            return False
+        except OSError as e:
+            if e.errno == 10061:
+                logger.error(f"Verbinding geweigerd (Error 10061) - Poort {self.port} niet open op {self.host}")
+            elif e.errno == 10060:
+                logger.error(f"Verbinding timeout (Error 10060) - Host niet bereikbaar")
+            else:
+                logger.error(f"OS Error {e.errno}: {e}")
+            self.connected = False
+            return False
+        except Exception as e:
+            logger.error(f"Onbekende fout bij verbinden: {e}")
             self.connected = False
             return False
     
@@ -78,22 +107,55 @@ class TCPClient:
         try:
             # Verstuur 2-byte command (little endian)
             command_bytes = struct.pack('<H', command)
+            
+            logger.debug(f"Verzenden command: {command} ({command_bytes.hex()})")
             self.socket.send(command_bytes)
-            logger.debug(f"Command verzonden: {command} ({command_bytes.hex()})")
             
-            # Ontvang 20-byte response
+            # Ontvang 20-byte response met timeout handling
             response = b""
-            while len(response) < 20:
-                chunk = self.socket.recv(20 - len(response))
-                if not chunk:
-                    raise socket.error("Verbinding verbroken tijdens ontvangst")
-                response += chunk
+            start_time = time.time()
+            max_wait_time = 5.0  # 5 seconden timeout voor response
             
-            logger.debug(f"Response ontvangen: {response.hex()}")
+            while len(response) < 20:
+                # Check timeout
+                if time.time() - start_time > max_wait_time:
+                    logger.error(f"Timeout bij ontvangen response na {max_wait_time}s")
+                    self.connected = False
+                    return None
+                
+                try:
+                    # Ontvang met korte timeout per chunk
+                    self.socket.settimeout(1.0)
+                    chunk = self.socket.recv(20 - len(response))
+                    
+                    if not chunk:
+                        logger.error("Verbinding verbroken tijdens ontvangst")
+                        self.connected = False
+                        return None
+                        
+                    response += chunk
+                    logger.debug(f"Chunk ontvangen: {len(chunk)} bytes, totaal: {len(response)}/20")
+                    
+                except socket.timeout:
+                    # Korte timeout is OK, probeer opnieuw
+                    continue
+                except socket.error as e:
+                    logger.error(f"Socket error tijdens ontvangst: {e}")
+                    self.connected = False
+                    return None
+            
+            # Reset socket timeout naar origineel
+            self.socket.settimeout(10.0)
+            
+            logger.debug(f"Volledige response ontvangen: {response.hex()}")
             return response
             
         except socket.error as e:
             logger.error(f"Communicatie fout: {e}")
+            self.connected = False
+            return None
+        except Exception as e:
+            logger.error(f"Onbekende fout bij send_command: {e}")
             self.connected = False
             return None
     
