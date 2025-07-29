@@ -1,15 +1,21 @@
-# WMS Mobile Racking TCP-IP Communication
+# Stow WMS Mobile Racking TCP-IP Communication
 
-A Python Streamlit application for TCP-IP communication with Mobile Racking systems. This application provides a user-friendly interface for communicating with WMS (Warehouse Management System) via TCP-IP protocol.
+A professional Python Streamlit application for TCP-IP communication with **Stow Mobile Racking systems**. This application provides an advanced, user-friendly interface for communicating with WMS (Warehouse Management System) via TCP-IP protocol, featuring the complete **Stow Group** branding and styling.
+
+![Stow Logo](stow_logo.jpg)
 
 ## Features
 
-- 🔌 TCP-IP communication on port 2000
-- 📊 Real-time status monitoring of Mobile Racking system
-- 🎛️ Interactive Streamlit interface
-- 📈 Data visualization of system parameters
-- 🔄 Command sending to Mobile Racking controller
-- 📋 Status logging and history
+- 🔌 **Professional TCP-IP Communication** on port 2000/2001
+- 📊 **Real-time Status Monitoring** of Stow Mobile Racking systems
+- 🎛️ **Interactive Streamlit Interface** with modern Stow branding
+- 📈 **Advanced Data Visualization** of system parameters
+- 🔄 **Comprehensive Command Interface** for Mobile Racking controller
+- 📋 **Professional Status Logging** and history tracking
+- 💻 **Multi-Language Protocol Generator** - Generate code in Node.js, C#, Ruby, JavaScript, Python
+- 🧪 **Manual Test Command Field** - Test custom commands directly
+- 🔍 **Advanced Diagnostics Suite** - Network scanning and troubleshooting tools
+- 🎨 **Complete Stow Group Branding** - Professional interface design
 
 ## TCP-IP Protocol Details
 
@@ -77,24 +83,66 @@ streamlit run app.py
 ## Usage
 
 1. **Configuration**: Set IP address and port via the sidebar
-2. **Connect**: Click "Connect" to establish connection
-3. **Commands**: Use the interface to send commands
-4. **Monitoring**: View real-time status updates
+2. **Navigation**: Use sidebar to select:
+   - 📊 **Dashboard**: Real-time monitoring and status overview
+   - 🎛️ **Controls**: System operations and lighting control
+   - 🔍 **Diagnostics**: Network scanning and troubleshooting
+   - 💻 **Code Generator**: Multi-language protocol code generation
+3. **Connect**: Click "Connect" to establish connection  
+4. **Commands**: Use the interface to send commands
+5. **Monitoring**: View real-time status updates
+
+### 💻 Multi-Language Code Generator
+
+The app now includes a powerful code generator that creates TCP-IP communication code in multiple programming languages:
+
+**Supported Languages:**
+- **Node.js** - Built-in `net` module, works with Node.js v12+
+- **C#** - .NET Core/Framework with `System.Net.Sockets`
+- **Ruby** - Built-in `socket` library  
+- **JavaScript** - Browser-based with WebSocket proxy
+- **Python** - Built-in `socket` library
+
+**Features:**
+- Complete working examples
+- Connection-only code snippets
+- Command sending code
+- Response parsing utilities
+- Manual command testing
+- Downloadable files with correct extensions
+
+**Usage Example:**
+1. Navigate to "💻 Code Generator" 
+2. Select programming language
+3. Configure host/port settings
+4. Choose code type (complete example recommended)
+5. Click "Generate Code"
+6. Download or copy the generated code
+7. Use the manual test field for custom commands
 
 ## Project Structure
 
 ```
 WMS-Node.JS/
-├── app.py                 # Main application
+├── app.py                 # Main Streamlit application
 ├── tcp_client.py          # TCP-IP communication module
 ├── wms_protocol.py        # WMS protocol definition
+├── protocol_generators.py # Multi-language code generators
+├── demo.py               # Demo and testing script
+├── diagnose_plc.py       # Advanced PLC diagnostics
+├── port_scanner.py       # Network port scanning utility
+├── test_connection.py    # Basic connection testing
 ├── utils/
 │   ├── __init__.py
 │   ├── data_parser.py     # Data parsing utilities
 │   └── logger.py          # Logging utilities
-├── requirements.txt       # Python dependencies
-├── README.md             # This file
-└── LICENSE               # MIT License
+├── examples/             # Generated code examples
+│   ├── wms_client_nodejs.js
+│   └── wms_client_csharp.cs
+├── logs/                 # Application logs
+├── requirements.txt      # Python dependencies
+├── README.md            # This file
+└── LICENSE              # MIT License
 ```
 
 ## WMS Data Structure
