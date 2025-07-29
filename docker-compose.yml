@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  wms-app:
+    build: .
+    container_name: wms-streamlit
+    ports:
+      - "8502:8502"    # Streamlit Web UI
+      - "2000:2000"    # TCP Server (optioneel)
+    environment:
+      - PLC_IP=1.1.1.2
+      - PLC_PORT=2000
+      - HMI_PORT=2001
+      - REVPI_ETH1=1.1.1.185
+      - REVPI_ETH0=192.168.0.12
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - /etc/localtime:/etc/localtime:ro
+    restart: unless-stopped
+    networks:
+      - wms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8502/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  wms-network:
+    driver: bridge
