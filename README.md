@@ -14,10 +14,40 @@ Een Python Streamlit applicatie voor TCP-IP communicatie met Mobile Racking syst
 ## TCP-IP Protocol Details
 
 - **IP Adres**: 1.1.1.2 (standaard, configureerbaar)
-- **Poort**: 2000
+- **Poort**: 2000 (standaard) - **⚠️ Zie troubleshooting sectie**
 - **Request grootte**: 2 bytes
 - **Response grootte**: 20 bytes
 - **Data structuur**: Volgens WMS-Data specificatie
+
+## Troubleshooting
+
+### Veelvoorkomende verbindingsproblemen:
+
+#### ❌ "Connection refused" op poort 2000
+**Oorzaak:** Mobile Racking TCP-IP service draait niet op de PLC  
+**Oplossing:**
+1. Neem contact op met PLC technicus
+2. Controleer of Mobile Racking software actief is
+3. Activeer TCP-IP communicatie module
+4. Verificeer poort configuratie
+
+#### ✅ Alternatieve poorten gevonden
+Als scan poorten 102, 2001, of 4840 toont:
+- **Poort 102**: Siemens S7 PLC communicatie
+- **Poort 2001**: Mogelijk alternatieve service
+- **Poort 4840**: OPC UA server
+
+#### 🔍 Diagnose tools beschikbaar:
+```bash
+# Volledige diagnose
+python diagnose_plc.py
+
+# Port scanning  
+python port_scanner.py
+
+# Basis connectiviteit test
+python test_connection.py
+```
 
 ## Installatie
 

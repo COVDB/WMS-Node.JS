@@ -202,7 +202,31 @@ def render_sidebar():
     
     # Verbinding configuratie
     host = st.sidebar.text_input("IP Adres", value="1.1.1.2", key="host")
-    port = st.sidebar.number_input("Poort", min_value=1, max_value=65535, value=2000, key="port")
+    
+    # Poort selectie met detectie
+    st.sidebar.write("**Poort Configuratie:**")
+    port_option = st.sidebar.radio(
+        "Selecteer poort:",
+        ["2001 (Detected ✅)", "2000 (Original)", "Custom"],
+        key="port_option"
+    )
+    
+    if port_option == "2001 (Detected ✅)":
+        port = 2001
+        st.sidebar.success("Poort 2001 gedetecteerd als open!")
+    elif port_option == "2000 (Original)":
+        port = 2000
+        st.sidebar.warning("Poort 2000 lijkt gesloten")
+    else:  # Custom
+        port = st.sidebar.number_input("Custom poort:", min_value=1, max_value=65535, value=2001)
+    
+    st.session_state.port = port
+    
+    # Connection status indicator
+    if st.session_state.connected:
+        st.sidebar.success(f"🟢 Verbonden met {host}:{port}")
+    else:
+        st.sidebar.error("🔴 Niet verbonden")
     
     # Verbinding knoppen
     col1, col2 = st.sidebar.columns(2)
@@ -215,11 +239,28 @@ def render_sidebar():
         if st.button("Verbreken", disabled=not st.session_state.connected):
             disconnect()
     
-    # Status indicator
-    if st.session_state.connected:
-        st.sidebar.success("🟢 Verbonden")
-    else:
-        st.sidebar.error("🔴 Niet verbonden")
+    st.sidebar.divider()
+    
+    # Quick port scan
+    st.sidebar.header("🔍 Diagnose")
+    if st.button("Port Scan", help="Scan open poorten op de PLC"):
+        with st.spinner("Scanning poorten..."):
+            # Quick port test voor diagnose
+            from port_scanner import test_port
+            test_ports = [2000, 2001, 2002, 102, 4840]
+            open_ports = []
+            
+            for p in test_ports:
+                _, is_open, response_time = test_port(host, p, 3)
+                if is_open:
+                    open_ports.append((p, response_time))
+            
+            if open_ports:
+                st.sidebar.success(f"Open poorten gevonden:")
+                for p, rt in open_ports:
+                    st.sidebar.write(f"• Poort {p} ({rt:.0f}ms)")
+            else:
+                st.sidebar.error("Geen open poorten gevonden")
     
     st.sidebar.divider()
     
@@ -285,7 +326,7 @@ def render_detailed_status(status: Dict[str, Any]):
                 'Parameter': key.replace('_', ' ').title(),
                 'Waarde': descriptions.get(key, str(value)),
                 'Type': field_info.data_type.value if field_info else 'Unknown',
-                'Offset': field_info.offset if field_info else 'N/A',
+                'Offset': str(field_info.offset) if field_info else 'N/A',
                 'Beschrijving': field_info.comment if field_info else 'N/A'
             })
     
@@ -467,6 +508,73 @@ def main():
     else:
         st.info("👆 Maak eerst verbinding via de sidebar")
         
+        # Toon live diagnose
+        st.header("🔍 PLC Diagnose")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📡 Netwerk Status")
+            
+            # Test basis connectiviteit
+            if st.button("🏓 Test Ping"):
+                with st.spinner("Testing ping..."):
+                    import subprocess
+                    try:
+                        result = subprocess.run(
+                            ['ping', '1.1.1.2', '-n', '2'], 
+                            capture_output=True, text=True, timeout=10
+                        )
+                        if result.returncode == 0:
+                            st.success("✅ Ping succesvol - netwerk OK")
+                        else:
+                            st.error("❌ Ping mislukt - netwerk probleem")
+                    except Exception as e:
+                        st.error(f"Ping test fout: {e}")
+            
+            # Test poorten
+            if st.button("🔍 Scan Poorten"):
+                with st.spinner("Scanning poorten..."):
+                    from port_scanner import test_port
+                    
+                    test_ports = [
+                        (102, "Siemens S7"),
+                        (2000, "Mobile Racking (Original)"), 
+                        (2001, "Alternative Service"),
+                        (4840, "OPC UA")
+                    ]
+                    
+                    port_results = []
+                    for port, desc in test_ports:
+                        _, is_open, response_time = test_port("1.1.1.2", port, 3)
+                        port_results.append((port, desc, is_open, response_time))
+                    
+                    # Toon resultaten
+                    for port, desc, is_open, rt in port_results:
+                        if is_open:
+                            st.success(f"✅ Poort {port} ({desc}): OPEN ({rt:.0f}ms)")
+                        else:
+                            st.error(f"❌ Poort {port} ({desc}): GESLOTEN")
+        
+        with col2:
+            st.subheader("🏭 Mobile Racking Status")
+            
+            st.warning("⚠️ Mobile Racking TCP-IP service niet gedetecteerd")
+            
+            st.markdown("""
+            **Waarschijnlijke oorzaken:**
+            - Mobile Racking software draait niet
+            - TCP-IP server module niet actief  
+            - Verkeerde poort configuratie
+            - PLC in STOP mode
+            
+            **Vereiste actie:**
+            Neem contact op met PLC technicus om:
+            1. Mobile Racking software te starten
+            2. TCP-IP communicatie module te activeren
+            3. Poort configuratie te verifiëren
+            """)
+        
         # Toon voorbeelddata
         st.header("📖 Voorbeeld WMS Data Structuur")
         
@@ -475,8 +583,8 @@ def main():
             example_data.append({
                 'Parameter': field.name[:30] + "..." if len(field.name) > 30 else field.name,
                 'Type': field.data_type.value,
-                'Offset': field.offset,
-                'Start Value': field.start_value,
+                'Offset': str(field.offset),
+                'Start Value': str(field.start_value),
                 'Comment': field.comment[:50] + "..." if len(field.comment) > 50 else field.comment
             })
         
