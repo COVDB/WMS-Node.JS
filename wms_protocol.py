@@ -1,0 +1,276 @@
+"""
+WMS Protocol Definitie
+Gebaseerd op Mobile Racking WMS-Data specificatie
+"""
+
+from enum import Enum
+from dataclasses import dataclass
+from typing import Dict, Any
+
+class DataType(Enum):
+    """Data types volgens WMS specificatie"""
+    BOOL = "Bool"
+    BYTE = "Byte" 
+    DWORD = "DWord"
+
+@dataclass
+class WMSField:
+    """WMS data veld definitie"""
+    name: str
+    data_type: DataType
+    offset: float
+    start_value: Any
+    comment: str
+    
+# WMS-Data structuur volgens specificatie
+WMS_DATA_STRUCTURE = {
+    'command_request': WMSField(
+        name="Command: Request A...",
+        data_type=DataType.BYTE,
+        offset=0.0,
+        start_value=1640,
+        comment="Integer: 1..19"
+    ),
+    'command_start_operation': WMSField(
+        name="Command: Start Ope...",
+        data_type=DataType.BOOL,
+        offset=1.0,
+        start_value=False,
+        comment="True = Send"
+    ),
+    'command_request_status': WMSField(
+        name="Command: Request St...",
+        data_type=DataType.BOOL,
+        offset=1.1,
+        start_value=False,
+        comment="Always false = Send / Option by TCP-IP Connection"
+    ),
+    'stow_mobile_racking_major': WMSField(
+        name="Stow Mobile Racking ...",
+        data_type=DataType.BYTE,
+        offset=2.0,
+        start_value=2,
+        comment='Mobile Racking Software Version "Major"'
+    ),
+    'stow_mobile_racking_minor': WMSField(
+        name="Stow Mobile Racking ...",
+        data_type=DataType.BYTE,
+        offset=3.0,
+        start_value=5,
+        comment='Mobile Racking Software Version "Minor"'
+    ),
+    'tcp_ip_reserved_message': WMSField(
+        name="TCP IP Reserved Messa...",
+        data_type=DataType.BYTE,
+        offset=4.0,
+        start_value=1640,
+        comment="Integer"
+    ),
+    'tcp_ip_connection': WMSField(
+        name="TCP IP Connection",
+        data_type=DataType.BOOL,
+        offset=5.0,
+        start_value=False,
+        comment="True = OK"
+    ),
+    'automatic_mode_on': WMSField(
+        name="Automatic Mode is ON",
+        data_type=DataType.BOOL,
+        offset=5.1,
+        start_value=False,
+        comment="True = OK"
+    ),
+    'mobiles_are_released': WMSField(
+        name="Mobiles Are Released I...",
+        data_type=DataType.BOOL,
+        offset=5.2,
+        start_value=False,
+        comment="True = OK"
+    ),
+    'manual_mode_on': WMSField(
+        name="Manual Mode is ON",
+        data_type=DataType.BOOL,
+        offset=5.3,
+        start_value=False,
+        comment="True = OK"
+    ),
+    'night_mode_activated': WMSField(
+        name="Night Mode Activated",
+        data_type=DataType.BOOL,
+        offset=5.4,
+        start_value=False,
+        comment="True = OK"
+    ),
+    'mobiles_are_moving': WMSField(
+        name="Mobiles Are Moving",
+        data_type=DataType.BOOL,
+        offset=5.5,
+        start_value=False,
+        comment="True = OK"
+    ),
+    'power_on': WMSField(
+        name="Power ON",
+        data_type=DataType.BOOL,
+        offset=5.6,
+        start_value=False,
+        comment="True = OK"
+    ),
+    'mobile_quantity': WMSField(
+        name="Mobile Quantity",
+        data_type=DataType.BYTE,
+        offset=6.0,
+        start_value=1640,
+        comment="Integer"
+    ),
+    'counter_lift_track_inside': WMSField(
+        name="Counter: Lifttrack inside",
+        data_type=DataType.BYTE,
+        offset=7.0,
+        start_value=1640,
+        comment="Integer"
+    ),
+    'alarm_light_curtain_front': WMSField(
+        name="Alarm: Light Curtain Fr...",
+        data_type=DataType.BOOL,
+        offset=8.0,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_light_curtain_back': WMSField(
+        name="Alarm: Light Curtain Ba...",
+        data_type=DataType.BOOL,
+        offset=8.1,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_emergency_shutdown': WMSField(
+        name="Alarm: Emergency Shu...",
+        data_type=DataType.BOOL,
+        offset=8.2,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_under_drive_section': WMSField(
+        name="Alarm: Under Drive Se...",
+        data_type=DataType.BOOL,
+        offset=8.3,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_light_beam_forward': WMSField(
+        name="Alarm: Light Beam For...",
+        data_type=DataType.BOOL,
+        offset=8.4,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_light_beam_fall': WMSField(
+        name="Alarm: Light Beam Fall...",
+        data_type=DataType.BOOL,
+        offset=8.5,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_contactor_50k': WMSField(
+        name="Alarm: Contactor 50k...",
+        data_type=DataType.BOOL,
+        offset=8.6,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_emergency_shutdown_2': WMSField(
+        name="Alarm: Emergency Shu...",
+        data_type=DataType.BOOL,
+        offset=9.0,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_under_drive_section_2': WMSField(
+        name="Alarm: Under Drive Se...",
+        data_type=DataType.BOOL,
+        offset=9.1,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_light_beam_forward_2': WMSField(
+        name="Alarm: Light Beam For...",
+        data_type=DataType.BOOL,
+        offset=9.2,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_light_beam_fall_2': WMSField(
+        name="Alarm: Light Beam Fall...",
+        data_type=DataType.BOOL,
+        offset=9.3,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'alarm_contactor_50k_2': WMSField(
+        name="Alarm: Contactor 50k...",
+        data_type=DataType.BOOL,
+        offset=9.4,
+        start_value=False,
+        comment="True = Alarm"
+    ),
+    'lighting_rules': WMSField(
+        name="Lighting Rules",
+        data_type=DataType.DWORD,
+        offset=10.0,
+        start_value=1640,
+        comment="lowest bit = aisle 1, highest bit = aisle 32, bit set = light on, little endian"
+    ),
+    'selected_aisle_to_open': WMSField(
+        name="Selected Aisle to Open",
+        data_type=DataType.BYTE,
+        offset=14.0,
+        start_value=1640,
+        comment="Integer"
+    )
+}
+
+class WMSCommands:
+    """WMS Command definities"""
+    
+    # Basis commands
+    STATUS_REQUEST = 0
+    START_OPERATION = 1
+    STOP_OPERATION = 2
+    EMERGENCY_STOP = 3
+    
+    # Mode commands
+    SET_AUTOMATIC_MODE = 10
+    SET_MANUAL_MODE = 11
+    SET_NIGHT_MODE = 12
+    
+    # Mobile commands
+    RELEASE_MOBILES = 20
+    LOCK_MOBILES = 21
+    
+    # Aisle commands
+    OPEN_AISLE = 30
+    CLOSE_AISLE = 31
+
+def get_status_description(status: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Converteer status waarden naar leesbare beschrijvingen
+    
+    Args:
+        status (Dict): Status dictionary van TCP client
+        
+    Returns:
+        Dict: Dictionary met leesbare beschrijvingen
+    """
+    descriptions = {}
+    
+    for key, value in status.items():
+        if key in WMS_DATA_STRUCTURE:
+            field = WMS_DATA_STRUCTURE[key]
+            if field.data_type == DataType.BOOL:
+                descriptions[key] = "OK" if value else "NOT OK"
+            else:
+                descriptions[key] = str(value)
+        else:
+            descriptions[key] = str(value)
+    
+    return descriptions
