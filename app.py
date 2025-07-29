@@ -115,7 +115,7 @@ if 'selected_language' not in st.session_state:
 def create_connection():
     """Create connection to Mobile Racking controller"""
     host = st.session_state.get('host', '1.1.1.2')
-    port = st.session_state.get('port', 2000)
+    port = st.session_state.get('port', 2001)
     
     # Check if running in cloud environment
     import os
@@ -175,6 +175,22 @@ def create_connection():
                     st.info("🎉 Status successfully received - connection works!")
                 else:
                     st.warning("⚠️ Connection OK but no status received")
+                    st.info("""
+                    **Troubleshooting info:**
+                    - TCP connection successful ✅
+                    - Command sent but no response ❌
+                    - This suggests the Mobile Racking software may not be active
+                    
+                    **What this means:**
+                    - The PLC TCP server is running (connection works)
+                    - But the Mobile Racking application is not responding
+                    - Node-RED may use a different protocol or port
+                    
+                    **Next steps:**
+                    1. Check if Mobile Racking software is running on the PLC
+                    2. Verify the correct port number with PLC administrator
+                    3. Compare with Node-RED configuration
+                    """)
         else:
             st.session_state.connected = False
             status_text.empty()
@@ -370,15 +386,37 @@ def render_sidebar():
         if st.button("🏓 Ping Test", help="Test network connectivity"):
             with st.spinner("Testing connectivity..."):
                 import subprocess
-                try:
-                    result = subprocess.run(['ping', host, '-n', '1'], 
-                                          capture_output=True, text=True, timeout=10)
-                    if result.returncode == 0:
-                        st.success(f"✅ {host} is reachable")
-                    else:
-                        st.error(f"❌ {host} is not reachable")
-                except:
-                    st.error("❌ Ping test failed")
+                import os
+                
+                # Check if running in cloud environment
+                is_cloud = os.getenv('STREAMLIT_SHARING') or 'streamlit.app' in os.getenv('HOSTNAME', '')
+                
+                if is_cloud:
+                    st.warning("🌐 **Cloud Environment Limitation**")
+                    st.error("❌ Ping functionality is not available in Streamlit Community Cloud")
+                    st.info("""
+                    **Why this doesn't work:**
+                    - Streamlit Cloud blocks subprocess commands for security
+                    - Network tools like ping are restricted
+                    - TCP connections to external hosts are prohibited
+                    
+                    **To test connectivity:**
+                    1. Download and run this app locally
+                    2. Use: `streamlit run app.py`
+                    3. Full network diagnostics will be available
+                    """)
+                else:
+                    try:
+                        result = subprocess.run(['ping', host, '-n', '1'], 
+                                              capture_output=True, text=True, timeout=10)
+                        if result.returncode == 0:
+                            st.success(f"✅ {host} is reachable")
+                            st.code(result.stdout.strip())
+                        else:
+                            st.error(f"❌ {host} is not reachable")
+                            st.code(result.stderr.strip())
+                    except Exception as e:
+                        st.error(f"❌ Ping test failed: {e}")
         
         # Footer with Stow branding
         st.markdown("---")
@@ -901,18 +939,78 @@ def render_diagnostics_page(current_status=None):
         
         if st.button("🔍 Test Connection"):
             host = st.session_state.get('host', '1.1.1.2')
-            with st.spinner("Testing connectivity..."):
-                # Simple ping test simulation
-                import subprocess
-                try:
-                    result = subprocess.run(['ping', host, '-n', '1'], 
-                                          capture_output=True, text=True, timeout=10)
-                    if result.returncode == 0:
-                        st.success(f"✅ {host} is reachable")
-                    else:
-                        st.error(f"❌ {host} is not reachable")
-                except:
-                    st.error("❌ Ping test failed")
+            import os
+            is_cloud = os.getenv('STREAMLIT_SHARING') or 'streamlit.app' in os.getenv('HOSTNAME', '')
+            
+            if is_cloud:
+                st.warning("🌐 **Cloud Environment Detected**")
+                st.error("❌ Network testing is not available in Streamlit Community Cloud")
+                st.info("""
+                **Network limitations in cloud:**
+                - Subprocess commands are blocked
+                - External TCP connections are prohibited
+                - Ping and port scanning tools unavailable
+                
+                **For full network diagnostics:**
+                - Download the app locally
+                - Run: `streamlit run app.py`
+                - All network tools will work perfectly
+                """)
+            else:
+                with st.spinner("Testing connectivity..."):
+                    # Simple ping test simulation
+                    import subprocess
+                    try:
+                        result = subprocess.run(['ping', host, '-n', '1'], 
+                                              capture_output=True, text=True, timeout=10)
+                        if result.returncode == 0:
+                            st.success(f"✅ {host} is reachable")
+                            st.code(result.stdout.strip())
+                            
+                            # Additional TCP test
+                            st.info("🔬 **Advanced TCP Test:**")
+                            try:
+                                import socket
+                                import struct
+                                
+                                # Test TCP connection and command
+                                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                                sock.settimeout(5)
+                                sock.connect((host, 2001))
+                                
+                                # Send status command
+                                command_bytes = struct.pack('<H', 0)
+                                sock.send(command_bytes)
+                                
+                                # Try to receive
+                                try:
+                                    response = sock.recv(1024)
+                                    if response:
+                                        st.success(f"✅ TCP Command works! Response: {len(response)} bytes")
+                                    else:
+                                        st.warning("⚠️ TCP connects but no command response")
+                                        st.info("""
+                                        **This indicates:**
+                                        - Network connection: ✅ Working
+                                        - TCP server: ✅ Running  
+                                        - Mobile Racking app: ❌ Not responding
+                                        
+                                        **Solution:** Check if Mobile Racking software is active on PLC
+                                        """)
+                                except:
+                                    st.warning("⚠️ TCP connects but times out on command")
+                                
+                                sock.close()
+                                
+                            except Exception as tcp_e:
+                                st.error(f"❌ TCP test failed: {tcp_e}")
+                                
+                        else:
+                            st.error(f"❌ {host} is not reachable")
+                            if result.stderr.strip():
+                                st.code(result.stderr.strip())
+                    except Exception as e:
+                        st.error(f"❌ Ping test failed: {e}")
         
         if st.button("🔍 Scan Ports"):
             host = st.session_state.get('host', '1.1.1.2')
