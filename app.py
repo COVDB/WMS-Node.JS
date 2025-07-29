@@ -1090,19 +1090,23 @@ def main():
             st.markdown("""
             <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 2rem; border-radius: 10px; margin: 2rem 0;">
                 <h2 style="color: #2c3e50; margin-top: 0;">🚀 Stow Mobile Racking Quick Start Guide</h2>
-                
-                <div style="background: white; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #3498db; margin: 1rem 0;">
-                    <h3 style="color: #2c3e50; margin-top: 0;">Welcome to the Stow WMS Mobile Racking Control System</h3>
-                    
-                    <h4 style="color: #3498db;">📋 Getting Started:</h4>
-                    <ol style="color: #2c3e50;">
-                        <li><strong>Configure Connection:</strong> Set IP address and port in the sidebar</li>
-                        <li><strong>Connect:</strong> Click the Connect button to establish communication</li>
-                        <li><strong>Navigate:</strong> Use the sidebar to access different system areas</li>
-                    </ol>
-                </div>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Welcome section with proper Streamlit styling
+            st.markdown("""
+            <div class="metric-card" style="margin: 1rem 0;">
+                <h3 style="color: #2c3e50; margin-top: 0;">Welcome to the Stow WMS Mobile Racking Control System</h3>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Getting started steps
+            st.markdown("#### 📋 Getting Started:")
+            st.markdown("""
+            1. **Configure Connection:** Set IP address and port in the sidebar
+            2. **Connect:** Click the Connect button to establish communication  
+            3. **Navigate:** Use the sidebar to access different system areas
+            """)
             
             # System areas with proper Streamlit columns
             st.markdown("### 🏭 System Areas Overview")
