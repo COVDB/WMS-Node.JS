@@ -369,6 +369,7 @@ def render_sidebar():
         """, unsafe_allow_html=True)
         
         return selected_page
+    
     if st.button("Port Scan", help="Scan open ports on the PLC"):
         with st.spinner("Scanning ports..."):
             # Quick port test for diagnostics
@@ -401,6 +402,8 @@ def render_sidebar():
     if auto_refresh and st.session_state.connected:
         time.sleep(5)
         st.rerun()
+    
+    return selected_page
 
 def render_status_overview(status: Dict[str, Any]):
     """Render status overview with Stow branding"""
@@ -652,156 +655,7 @@ def render_history_chart():
         )
         st.plotly_chart(fig, use_container_width=True)
 
-def main():
-    """Main function"""
-    st.title("🏭 WMS Mobile Racking Controller")
-    st.markdown("TCP-IP communication interface for Mobile Racking systems")
-    
-    # Render sidebar and get selected page
-    selected_page = render_sidebar()
-    
-    # Route to selected page
-    if selected_page == "💻 Code Generator":
-        render_protocol_generator()
-        return
-    
-    # Main content for other pages
-    if st.session_state.connected:
-        # Refresh button
-        col1, col2, col3 = st.columns([1, 1, 4])
-        with col1:
-            if st.button("🔄 Refresh Status"):
-                get_system_status()
-        
-        # Get status if we're connected
-        if st.button("📊 Get Status", type="primary") or st.session_state.last_status:
-            status = get_system_status()
-            
-            if status or st.session_state.last_status:
-                current_status = status or st.session_state.last_status
-                
-                if selected_page == "📊 Dashboard":
-                    # Tabs for different views
-                    tab1, tab2, tab3 = st.tabs([
-                        "Status Overview", "Detailed", "History"
-                    ])
-                    
-                    with tab1:
-                        render_status_overview(current_status)
-                    
-                    with tab2:
-                        render_detailed_status(current_status)
-                    
-                    with tab3:
-                        render_history_chart()
-                
-                elif selected_page == "🎛️ Controls":
-                    # Control tabs
-                    tab1, tab2 = st.tabs([
-                        "Lighting Control", "Commands"
-                    ])
-                    
-                    with tab1:
-                        render_lighting_control(current_status)
-                    
-                    with tab2:
-                        render_command_interface()
-                
-                elif selected_page == "🔍 Diagnostics":
-                    render_diagnostics_page(current_status)
-                
-                # Timestamp
-                if 'timestamp' in current_status:
-                    st.sidebar.write(f"Last update: {current_status['timestamp'].strftime('%H:%M:%S')}")
-    
-    else:
-        if selected_page == "🔍 Diagnostics":
-            render_diagnostics_page()
-        else:
-            st.info("👆 Connect first via the sidebar")
-            
-            # Show live diagnostics
-            st.header("🔍 PLC Diagnostics")
-            
-            col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("📡 Network Status")
-            
-            # Test basic connectivity
-            if st.button("🏓 Test Ping"):
-                with st.spinner("Testing ping..."):
-                    import subprocess
-                    try:
-                        result = subprocess.run(
-                            ['ping', '1.1.1.2', '-n', '2'], 
-                            capture_output=True, text=True, timeout=10
-                        )
-                        if result.returncode == 0:
-                            st.success("✅ Ping successful - network OK")
-                        else:
-                            st.error("❌ Ping failed - network problem")
-                    except Exception as e:
-                        st.error(f"Ping test error: {e}")
-            
-            # Test ports
-            if st.button("🔍 Scan Ports"):
-                with st.spinner("Scanning ports..."):
-                    from port_scanner import test_port
-                    
-                    test_ports = [
-                        (102, "Siemens S7"),
-                        (2000, "Mobile Racking (Original)"), 
-                        (2001, "Alternative Service"),
-                        (4840, "OPC UA")
-                    ]
-                    
-                    port_results = []
-                    for port, desc in test_ports:
-                        _, is_open, response_time = test_port("1.1.1.2", port, 3)
-                        port_results.append((port, desc, is_open, response_time))
-                    
-                    # Show results
-                    for port, desc, is_open, rt in port_results:
-                        if is_open:
-                            st.success(f"✅ Port {port} ({desc}): OPEN ({rt:.0f}ms)")
-                        else:
-                            st.error(f"❌ Port {port} ({desc}): CLOSED")
-        
-        with col2:
-            st.subheader("🏭 Mobile Racking Status")
-            
-            st.warning("⚠️ Mobile Racking TCP-IP service not detected")
-            
-            st.markdown("""
-            **Probable causes:**
-            - Mobile Racking software not running
-            - TCP-IP server module not active  
-            - Wrong port configuration
-            - PLC in STOP mode
-            
-            **Required action:**
-            Contact PLC technician to:
-            1. Start Mobile Racking software
-            2. Activate TCP-IP communication module
-            3. Verify port configuration
-            """)
-        
-        # Show example data
-        st.header("📖 Example WMS Data Structure")
-        
-        example_data = []
-        for key, field in list(WMS_DATA_STRUCTURE.items())[:10]:  # Show first 10
-            example_data.append({
-                'Parameter': field.name[:30] + "..." if len(field.name) > 30 else field.name,
-                'Type': field.data_type.value,
-                'Offset': str(field.offset),
-                'Start Value': str(field.start_value),
-                'Comment': field.comment[:50] + "..." if len(field.comment) > 50 else field.comment
-            })
-        
-        df = pd.DataFrame(example_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+# This duplicate main function has been removed - keeping only the final main function with Stow branding
 
 def render_protocol_generator():
     """Render multi-language protocol code generator with Stow branding"""
