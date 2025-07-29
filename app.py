@@ -1098,38 +1098,65 @@ def main():
                     <ol style="color: #2c3e50;">
                         <li><strong>Configure Connection:</strong> Set IP address and port in the sidebar</li>
                         <li><strong>Connect:</strong> Click the Connect button to establish communication</li>
-                        <li><strong>Navigate:</strong> Use the sidebar to access different system areas:</li>
+                        <li><strong>Navigate:</strong> Use the sidebar to access different system areas</li>
                     </ol>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                            <strong>📊 Dashboard:</strong> Real-time status monitoring and system overview
-                        </div>
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                            <strong>🎛️ Controls:</strong> System operations and lighting management
-                        </div>
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                            <strong>🔍 Diagnostics:</strong> Network analysis and troubleshooting tools
-                        </div>
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">
-                            <strong>💻 Code Generator:</strong> Multi-language integration code
-                        </div>
-                    </div>
-                    
-                    <h4 style="color: #f39c12;">💡 Pro Tips:</h4>
-                    <ul style="color: #2c3e50;">
-                        <li>Try the <strong>Code Generator</strong> - works without connection!</li>
-                        <li>Use <strong>Diagnostics</strong> to troubleshoot connection issues</li>
-                        <li>Contact Stow support for technical assistance</li>
-                    </ul>
                 </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # System areas with proper Streamlit columns
+            st.markdown("### 🏭 System Areas Overview")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("""
+                <div class="metric-card">
+                    <h4 style="margin: 0; color: #3498db;">📊 Dashboard</h4>
+                    <p style="margin: 0.5rem 0 0 0;">Real-time status monitoring and system overview with live metrics</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                <div style="text-align: center; margin-top: 2rem;">
-                    <p style="color: #666; font-size: 0.9rem;">
-                        <strong>Stow Group</strong> - Leading provider of innovative storage solutions<br>
-                        <span style="color: #ff6b35;">Powered by advanced automation technology</span>
-                    </p>
+                st.write("")  # Spacing
+                
+                st.markdown("""
+                <div class="metric-card">
+                    <h4 style="margin: 0; color: #e67e22;">🔍 Diagnostics</h4>
+                    <p style="margin: 0.5rem 0 0 0;">Network analysis and troubleshooting tools for system health</p>
                 </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown("""
+                <div class="metric-card">
+                    <h4 style="margin: 0; color: #27ae60;">🎛️ Controls</h4>
+                    <p style="margin: 0.5rem 0 0 0;">System operations and lighting management interface</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.write("")  # Spacing
+                
+                st.markdown("""
+                <div class="metric-card">
+                    <h4 style="margin: 0; color: #8e44ad;">� Code Generator</h4>
+                    <p style="margin: 0.5rem 0 0 0;">Multi-language integration code for various platforms</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Pro tips section
+            st.markdown("### 💡 Pro Tips")
+            st.info("**🚀 Try the Code Generator** - Works without connection and generates code for Node.js, C#, Ruby, JavaScript, and Python!")
+            st.info("**🔧 Use Diagnostics** - Troubleshoot connection issues with built-in network tools")
+            st.info("**📞 Stow Support** - Contact our technical team for assistance with Mobile Racking systems")
+            
+            # Footer with Stow branding
+            st.markdown("---")
+            st.markdown("""
+            <div style="text-align: center; margin-top: 2rem;">
+                <p style="color: #666; font-size: 0.9rem;">
+                    <strong>Stow Group</strong> - Leading provider of innovative storage solutions<br>
+                    <span style="color: #ff6b35;">Powered by advanced automation technology</span>
+                </p>
             </div>
             """, unsafe_allow_html=True)
 
