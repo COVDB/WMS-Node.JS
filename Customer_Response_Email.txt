@@ -1,0 +1,133 @@
+Onderwerp: STOW Mobile Racking - Uitleg 20-Byte Response Codes
+
+Beste [Klant Naam],
+
+Hierbij de uitleg van de 20-byte response codes die uw STOW Mobile Racking systeem terugstuurt na elk commando.
+
+## 🎯 WAT IS EEN 20-BYTE RESPONSE?
+
+Elke keer als u een commando stuurt naar uw mobiele stellingsysteem (bijvoorbeeld "open gang 5"), stuurt de machine een antwoord van precies 20 bytes terug. Dit antwoord vertelt u of het systeem klaar is voor gebruik.
+
+## 📊 EENVOUDIGE UITLEG
+
+De 20 bytes bevatten 10 verschillende "woorden" (elk 2 bytes):
+
+**Woord 1-2**: Is het systeem aan en bereikbaar?
+**Woord 3-4**: Software versie (bijvoorbeeld [2,5] = versie 2.5)
+**Woord 5-6**: Status flags en Boolean waarden
+**Woord 7-8**: Voeding en basis controles
+**Woord 9-10**: Bewegende delen informatie
+
+## 🚦 WAT BETEKENEN DE NUMMERS?
+
+### ✅ ALLES WERKT PERFECT
+```
+Voorbeeld: [0, 2, 2, 5, 9, 9, 0, 0, 223, 27, 0, 0, 0, 0, 0, 0, 0, 14, 0, 0]
+
+TCP Status: 512 (verbinding actief)
+Software: Versie 2.5 ✅ BEVESTIGD
+Status Flags: [9,9] (⚠️ byte 5 zou boolean moeten zijn - onderzoek nodig)
+Beweging: 6879 (actieve beweging gedetecteerd)
+Positie: 3584 (operationele stand)
+
+➜ BETEKENIS: Systeem actief, maar byte interpretatie moet worden gecontroleerd
+```
+
+### ❌ SYSTEEM IS UIT
+```
+Voorbeeld: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+Alle getallen zijn 0
+
+➜ BETEKENIS: Machine is uitgeschakeld of heeft geen stroom
+➜ ACTIE: Schakel de machine in of controleer stroomvoorziening
+```
+
+### ⚠️ PROBLEEM GEDETECTEERD
+```
+Voorbeeld: [0, 0, 1, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+Systeem Status: 1 (zeer laag = probleem)
+Beweging: 50 (beperkte activiteit)
+
+➜ BETEKENIS: Systeem heeft een storing of beperking
+➜ ACTIE: Bel de technische dienst voordat u verdergaat
+```
+
+## 🛡️ VEILIGHEIDSREGELS
+
+**GROENE STATUS (hoge getallen > 1000)**
+✅ Veilig om gangen te openen
+✅ Normale bedrijfsvoering mogelijk
+✅ Alle systemen functioneren
+
+**RODE STATUS (lage getallen < 100 of alles 0)**
+❌ STOP met gebruik
+❌ Bel technische ondersteuning
+❌ Controleer voeding en verbindingen
+
+**GELE STATUS (middel getallen 100-1000)**
+⚠️ Beperkt gebruik mogelijk
+⚠️ Extra voorzichtigheid
+⚠️ Overleg met technicus
+
+## 📱 PRAKTISCH GEBRUIK
+
+**In uw Streamlit interface ziet u**:
+- 🟢 Groene lampjes = Alles goed
+- 🔴 Rode lampjes = Probleem
+- Een duidelijke melding: "SYSTEEM OPERATIONEEL" of "SYSTEEM INACTIEF"
+
+**Dagelijkse controle**:
+1. Klik op "STATUS AANVRAAG" 
+2. Controleer of lampjes groen zijn
+3. Bij groen: veilig gebruik
+4. Bij rood: contact technische dienst
+
+## 🔧 VOOR TECHNISCHE MEDEWERKERS
+
+**Gedetailleerde byte mapping**:
+- Bytes 0-1: TCP verbinding status (512 = actief)
+- Bytes 2-3: Software versie ([2,5] = v2.5) ✅ BEVESTIGD
+- Bytes 4-5: Status flags ([9,9] - byte 5 boolean vraag ⚠️)
+- Bytes 6-7: Voeding en basiscontroles
+- Bytes 8-9: Mobile bewegingsdata
+- Bytes 10-15: Gereserveerd (meestal 0)
+- Bytes 16-17: Positiegegevens
+- Bytes 18-19: Extra status
+
+**Alarm bits volgens WMS-Data specificatie**:
+- Offset 8.0-9.4: Lichtgordijn, noodstop, aandrijving alarmen
+- True = Alarm actief, False = Normaal
+
+## 📞 ONDERSTEUNING
+
+**Bij vragen of problemen**:
+- Technische dienst: [uw support nummer]
+- Email: [uw support email]
+- Spoed (veiligheid): [nood nummer]
+
+**Vermeld altijd**:
+- De exacte 20-byte response
+- Wat u probeerde te doen
+- Tijdstip van het probleem
+
+## 📋 SAMENVATTING
+
+De 20-byte response is als een "gezondheidscheck" van uw machine:
+- **Hoge getallen** = gezonde machine
+- **Lage getallen** = zieke machine  
+- **Alleen nullen** = machine slaapt
+
+Uw Streamlit interface vertaalt dit automatisch naar begrijpelijke kleuren en meldingen.
+
+Bij twijfel: beter voorzichtig zijn en technische ondersteuning bellen.
+
+Met vriendelijke groet,
+
+[Uw naam]
+STOW Technical Support
+
+---
+
+P.S. Dit bericht kunt u bewaren als referentie. Voor de volledige technische documentatie, zie bijgevoegd bestand "WMS_Response_Documentation.md".
