@@ -1,49 +1,53 @@
 # STOW Mobile Racking System - 20-Byte Response Documentatie
 
 ## Voor: Klanten en Technici
-## Van: STOW Technical Support
-## Datum: 30 Juli 2025
+## Van: STOW Technical Support  
+## Datum: 31 Juli 2025 - BIJGEWERKT MET OFFICIËLE MAPPING
 
 ---
 
 ## 📋 **Overzicht**
 
-Het STOW Mobile Racking systeem stuurt na elk commando een gestandaardiseerde 20-byte response terug via TCP/IP. Deze response bevat alle cruciale informatie over de huidige status van het systeem.
+Het STOW Mobile Racking systeem stuurt na elk commando een gestandaardiseerde 20-byte response terug via TCP/IP. Deze response bevat alle cruciale informatie over de huidige status van het systeem volgens de officiële WMS-Data specificatie.
 
 ---
 
-## 🔍 **20-Byte Response Structuur**
+## 🔍 **20-Byte Response Structuur (OFFICIËLE MAPPING)**
 
-De response bestaat uit **10 x 16-bit woorden** (little-endian format):
+De response bestaat uit **10 x 16-bit woorden** (little-endian format) met de volgende **BEVESTIGDE** mapping:
 
 ```
 Byte Position:  0-1   2-3   4-5   6-7   8-9   10-11  12-13  14-15  16-17  18-19
 Word Number:    [0]   [1]   [2]   [3]   [4]   [5]    [6]    [7]    [8]    [9]
+Offset Range:   0-1   2-4   5-7   8-9   10-11 12-13  14-15  16-17  18-19  -
 ```
 
 ---
 
-## 📊 **Veld Mapping (gebaseerd op WMS-Data specificatie)**
+## 📊 **Officiële Veld Mapping (WMS-Data Specificatie)**
 
-### **Word 0 (Bytes 0-1): TCP-IP Connection Status**
-- **Offset**: 5.0 in WMS-Data
-- **Type**: Bool
-- **Waarde**: `1` = Verbinding OK, `0` = Verbinding probleem
-- **Betekenis**: Bevestigt dat TCP-IP communicatie werkt
+### **Word 0 (Bytes 0-1): Command & Start Flags**
+- **Offset 0.0**: Command request (welke gang open is) - Byte (1-19)
+- **Offset 1.0**: Start opening aisle - Bool (true=send)  
+- **Offset 1.1**: Request status - Bool (altijd false)
+- **Betekenis**: Commando status en start operatie flags
 
-### **Word 1 (Bytes 2-3): Software Versie**
-- **Bevat**: Software versie informatie
-- **Bytes 2-3**: [2,5] = Software versie 2.5 ✅ BEVESTIGD
-- **Interpretatie**: Byte 2 = major versie, Byte 3 = minor versie
-- **Waarde voorbeelden**:
-  - `[2,5]` = Versie 2.5 (huidige machine)
-  - `[1,8]` = Versie 1.8
+### **Word 1 (Bytes 2-3): Software Versie** ✅ BEVESTIGD
+- **Offset 2.0**: Software Major - Byte (standaard: 2)
+- **Offset 3.0**: Software Minor - Byte (standaard: 5)
+- **Real Data**: [2,5] = **Software versie 2.5** ✅ CORRECT
+- **Interpretatie**: Direct leesbaar als versie major.minor
 
-### **Word 2 (Bytes 4-5): Boolean Flags & Status**
-- **Byte 4**: Status flags (integer waarde)
-- **Byte 5**: Boolean veld (0 of 1 verwacht)
-- **⚠️ OPMERKING**: In real data zien we waarde 9 in byte 5, wat wijst op mogelijk andere interpretatie
-- **Werkelijke betekenis**: Nog te onderzoeken met WMS-Data specificatie
+### **Word 2 (Bytes 4-5): TCP & Operating Mode Flags**
+- **Offset 4.0**: TCP-IP received messages - Byte (integer)
+- **Offset 5.0**: TCP-IP connection status - Bool (true=OK, false=error)
+- **Offset 5.1**: Operating mode AUTO active - Bool
+- **Offset 5.2**: Installation released - Bool  
+- **Offset 5.3**: Operating mode MANUAL active - Bool
+- **Offset 5.4**: Nightmode active - Bool
+- **Offset 5.5**: Installation moving - Bool
+- **Offset 5.6**: Power ON - Bool
+- **⚠️ Byte 5 waarde 9**: Dit zijn 7 Boolean flags als bits!
 
 ### **Word 3 (Bytes 6-7): Voeding & Basis Status**
 - **Offset**: 4.0 in WMS-Data

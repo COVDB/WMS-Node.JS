@@ -1,5 +1,6 @@
 """
 WMS Mobile Racking TCP-IP Communication Streamlit App - RevPi Version
+UPDATED WITH OFFICIAL WMS-DATA MAPPING - July 31, 2025
 """
 
 import streamlit as st
@@ -12,6 +13,17 @@ import base64
 import socket
 from datetime import datetime
 from typing import Dict, Any, List
+
+# Import enhanced parser if available
+try:
+    from enhanced_response_parser import (
+        parse_enhanced_mobile_response, 
+        get_safety_assessment, 
+        format_status_for_customer
+    )
+    ENHANCED_PARSER_AVAILABLE = True
+except ImportError:
+    ENHANCED_PARSER_AVAILABLE = False
 
 # Page config - geen emoji characters voor RevPi compatibiliteit
 st.set_page_config(
